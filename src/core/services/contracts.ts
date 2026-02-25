@@ -216,9 +216,9 @@ export async function multicall(
     // TronWeb might wrap the result array in another array
     const finalResults =
       Array.isArray(results) &&
-        results.length === 1 &&
-        Array.isArray(results[0]) &&
-        (Array.isArray(results[0][0]) || typeof results[0][0] === "object")
+      results.length === 1 &&
+      Array.isArray(results[0]) &&
+      (Array.isArray(results[0][0]) || typeof results[0][0] === "object")
         ? results[0]
         : results;
 
@@ -326,11 +326,22 @@ export async function deployContract(
     const result = await tronWeb.trx.sendRawTransaction(signedTx);
 
     if (result && result.result) {
-      const tx = result.transaction;
-      const txID = tx.txID;
+      const txID = result.transaction.txID;
 
       // Contract address is only available after tx is confirmed; get it from getTransactionInfo
       const info = await waitForTransaction(txID, network);
+
+      // Check if transaction actually succeeded
+      // In TRON, success is often indicated by info.receipt.result === 'SUCCESS' or info.result === 'FAILED' (if it exists)
+      if (info.receipt && info.receipt.result && info.receipt.result !== "SUCCESS") {
+        const revertReason = info.resMessage
+          ? Buffer.from(info.resMessage, "hex").toString()
+          : "Unknown revert reason";
+        throw new Error(
+          `Contract deployment failed with status ${info.receipt.result}: ${revertReason}`,
+        );
+      }
+
       const contractAddressHex = info?.contract_address as string | undefined;
       let contractAddress: string | undefined;
       if (contractAddressHex) {
@@ -339,14 +350,16 @@ export async function deployContract(
         const withPrefix = hex.length === 40 && !hex.startsWith("41") ? "41" + hex : hex;
         const decoded = tronWeb.address.fromHex(withPrefix);
         contractAddress = typeof decoded === "string" ? decoded : undefined;
-      } else {
-        contractAddress = undefined;
+      }
+
+      if (!contractAddress) {
+        throw new Error("Contract deployed but failed to resolve contract address");
       }
 
       return {
         txID,
         contractAddress,
-        message: "Contract deployment transaction broadcast successfully",
+        message: "Contract deployment successful",
       };
     } else {
       throw new Error(`Broadcast failed: ${JSON.stringify(result)}`);
