@@ -838,8 +838,8 @@ export function registerTRONTools(server: McpServer) {
     },
     async ({ abi, bytecode, args = [], name, network = "mainnet", feeLimit }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const privateKey = getConfiguredPrivateKey();
+        const senderAddress = getWalletAddressFromKey();
 
         const result = await services.deployContract(
           privateKey,
@@ -860,11 +860,9 @@ export function registerTRONTools(server: McpServer) {
               text: JSON.stringify(
                 {
                   network,
-                  ...result,
                   from: senderAddress,
                   constructorArgs: args.length > 0 ? args : undefined,
-                  message:
-                    "Deployment transaction broadcast. Use get_transaction_info to wait for confirmation.",
+                  ...result, // result contains contractAddress, txHash, message, etc.
                 },
                 null,
                 2,

@@ -3,14 +3,14 @@ import { getWallet } from "./clients.js";
 /**
  * Freeze TRX to get resources (Stake 2.0)
  * @param privateKey The private key of the account to freeze balance
- * @param amount Amount to freeze in Sun
+ * @param amount Amount to freeze in Sun (decimal string to preserve precision for large values)
  * @param resource Resource type: "BANDWIDTH" or "ENERGY"
  * @param network Network name (mainnet, nile, shasta)
  * @returns Transaction hash
  */
 export async function freezeBalanceV2(
   privateKey: string,
-  amount: string | number,
+  amount: string,
   resource: "BANDWIDTH" | "ENERGY" = "BANDWIDTH",
   network = "mainnet",
 ) {
@@ -18,7 +18,7 @@ export async function freezeBalanceV2(
 
   try {
     const transaction = await tronWeb.transactionBuilder.freezeBalanceV2(
-      Number(amount),
+      amount as any, // Pass string directly; TronWeb's protobuf Long handles large integers safely
       resource,
       tronWeb.defaultAddress.base58 || undefined,
     );
@@ -38,14 +38,14 @@ export async function freezeBalanceV2(
 /**
  * Unfreeze TRX to release resources (Stake 2.0)
  * @param privateKey The private key of the account to unfreeze balance
- * @param amount Amount to unfreeze in Sun
+ * @param amount Amount to unfreeze in Sun (decimal string to preserve precision for large values)
  * @param resource Resource type: "BANDWIDTH" or "ENERGY"
  * @param network Network name (mainnet, nile, shasta)
  * @returns Transaction hash
  */
 export async function unfreezeBalanceV2(
   privateKey: string,
-  amount: string | number,
+  amount: string,
   resource: "BANDWIDTH" | "ENERGY" = "BANDWIDTH",
   network = "mainnet",
 ) {
@@ -53,7 +53,7 @@ export async function unfreezeBalanceV2(
 
   try {
     const transaction = await tronWeb.transactionBuilder.unfreezeBalanceV2(
-      Number(amount),
+      amount as any, // Pass string directly; TronWeb's protobuf Long handles large integers safely
       resource,
       tronWeb.defaultAddress.base58 || undefined,
     );

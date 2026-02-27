@@ -120,6 +120,22 @@ export function parseABI(abiJson: string | any[]): any[] {
 }
 
 /**
+ * Expand an ABI parameter to its canonical type string for function signature generation.
+ * Handles tuple types by recursively expanding components.
+ * e.g. { type: "tuple", components: [{type:"address"},{type:"uint256"}] } → "(address,uint256)"
+ * e.g. { type: "tuple[]", components: [...] }                             → "(address,uint256)[]"
+ */
+function expandType(param: any): string {
+  if (!param.type.startsWith("tuple")) {
+    return param.type;
+  }
+  // Extract array suffix: "tuple[]" → "[]", "tuple[3]" → "[3]", "tuple" → ""
+  const suffix = param.type.slice("tuple".length);
+  const inner = (param.components || []).map(expandType).join(",");
+  return `(${inner})${suffix}`;
+}
+
+/**
  * Get readable function signatures from ABI
  */
 export function getReadableFunctions(abi: any[]) {
@@ -409,20 +425,50 @@ export async function estimateEnergy(
     // Use normalized ABI
     const normalizedAbi = parseABI(params.abi);
 
-    // Find function definition in normalized ABI
-    const func = normalizedAbi.find(
+    // Find function definition in normalized ABI, handling overloaded functions (same name, different params)
+    const args = params.args || [];
+    const candidates = normalizedAbi.filter(
       (item) => item.type === "function" && item.name === params.functionName,
     );
-    if (!func) {
+    if (candidates.length === 0) {
       throw new Error(`Function ${params.functionName} not found in ABI`);
     }
 
+    // Match by args count to resolve overloads
+    const matched = candidates.filter((item) => (item.inputs || []).length === args.length);
+    if (matched.length === 0) {
+      const overloads = candidates
+        .map(
+          (item) =>
+            `${params.functionName}(${(item.inputs || []).map((i: any) => i.type).join(", ")})`,
+        )
+        .join(" | ");
+      throw new Error(
+        `No overload of ${params.functionName} accepts ${args.length} argument(s). Available: ${overloads}`,
+      );
+    }
+    if (matched.length > 1) {
+      // Multiple overloads with same arg count (different types) — cannot auto-resolve
+      const overloads = matched
+        .map(
+          (item) =>
+            `${params.functionName}(${(item.inputs || []).map((i: any) => i.type).join(", ")})`,
+        )
+        .join(" | ");
+      throw new Error(
+        `Ambiguous overload for ${params.functionName} with ${args.length} argument(s). ` +
+          `Candidates: ${overloads}. Please specify the exact function signature.`,
+      );
+    }
+    const func = matched[0];
+
     // Build function signature: name(type1,type2,...)
-    const inputTypes = (func.inputs || []).map((i: any) => i.type);
+    // expandType handles tuple/struct params (e.g. tuple → (address,uint256))
+    const inputTypes = (func.inputs || []).map((i: any) => expandType(i));
     const signature = `${params.functionName}(${inputTypes.join(",")})`;
 
     // Map args to Typed Parameters format: [{type: '...', value: '...'}]
-    const typedParams = (params.args || []).map((val: any, index: number) => {
+    const typedParams = args.map((val: any, index: number) => {
       return {
         type: inputTypes[index],
         value: val,

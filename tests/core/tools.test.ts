@@ -237,7 +237,6 @@ describe("TRON Tools Unit Tests", () => {
       );
       const content = JSON.parse(result.content[0].text);
       expect(content.txID).toBe("tx123");
-      expect(content.txID).toBe("tx123");
       expect(content.contractAddress).toBe("Taddr");
     });
 
