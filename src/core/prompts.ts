@@ -248,7 +248,7 @@ After execution:
         ],
       };
     },
-    { requiresWallet: true },
+    { requiresWallet: true, isReadOnly: false },
   );
 
   registerPrompt(
