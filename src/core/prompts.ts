@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import * as services from "./services/index.js";
 
 /**
  * Register task-oriented prompts with the MCP server
@@ -14,13 +15,33 @@ import { z } from "zod";
  * require multiple tool calls in the correct sequence.
  *
  * @param server The MCP server instance
+ * @param options Registration options
  */
-export function registerTRONPrompts(server: McpServer) {
+export function registerTRONPrompts(server: McpServer, options: { readOnly?: boolean } = {}) {
+  const { isWalletConfigured } = services;
+
+  /**
+   * Helper to register a prompt with automatic wallet requirement detection.
+   * Prompts that guide write operations should only be registered if a wallet
+   * is configured and we are not in read-only mode.
+   */
+  const registerPrompt = (
+    name: string,
+    definition: any,
+    handler: any,
+    extra: { requiresWallet?: boolean } = {},
+  ) => {
+    if (extra.requiresWallet && (options.readOnly || !isWalletConfigured())) {
+      return;
+    }
+    server.registerPrompt(name, definition, handler);
+  };
+
   // ============================================================================
   // TRANSACTION PROMPTS
   // ============================================================================
 
-  server.registerPrompt(
+  registerPrompt(
     "prepare_transfer",
     {
       description: "Safely prepare and execute a token transfer with validation checks",
@@ -87,9 +108,10 @@ ${
         },
       ],
     }),
+    { requiresWallet: true },
   );
 
-  server.registerPrompt(
+  registerPrompt(
     "interact_with_contract",
     {
       description:
@@ -216,9 +238,10 @@ After execution:
         ],
       };
     },
+    { requiresWallet: true },
   );
 
-  server.registerPrompt(
+  registerPrompt(
     "diagnose_transaction",
     {
       description: "Analyze transaction status, failures, and provide debugging insights",
@@ -282,7 +305,7 @@ Provide structured diagnosis:
     }),
   );
 
-  server.registerPrompt(
+  registerPrompt(
     "explain_tron_concept",
     {
       description: "Explain TRON and blockchain concepts with examples",
@@ -370,7 +393,7 @@ Provide explanation in sections:
   // WALLET ANALYSIS PROMPTS
   // ============================================================================
 
-  server.registerPrompt(
+  registerPrompt(
     "analyze_wallet",
     {
       description: "Get comprehensive overview of wallet assets, balances, and activity",
@@ -442,7 +465,7 @@ Provide analysis with clear sections:
   // NETWORK & EDUCATION PROMPTS
   // ============================================================================
 
-  server.registerPrompt(
+  registerPrompt(
     "check_network_status",
     {
       description: "Check current network health and conditions",

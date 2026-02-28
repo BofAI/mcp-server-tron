@@ -16,16 +16,39 @@ import * as services from "./services/index.js";
  * - TRON_ACCOUNT_INDEX: Optional account index for HD wallet derivation (default: 0)
  *
  * @param server The MCP server instance
+ * @param options Registration options (e.g., readOnly mode)
  */
-export function registerTRONTools(server: McpServer) {
+export function registerTRONTools(server: McpServer, options: { readOnly?: boolean } = {}) {
   // Helpers are now imported from services/wallet.ts
-  const { getConfiguredPrivateKey, getWalletAddressFromKey } = services;
+  const { getConfiguredPrivateKey, getWalletAddressFromKey, isWalletConfigured } = services;
+
+  /**
+   * Helper to register a tool with automatic wallet requirement detection.
+   * If a tool is not read-only or explicitly requires a wallet, it will only be
+   * registered if a wallet is configured via environment variables.
+   */
+  const registerTool = (name: string, definition: any, handler: any) => {
+    const annotations = definition.annotations || {};
+    // Wallet is needed if:
+    // 1. Explicitly requested via requiresWallet
+    // 2. Tool is not read-only (readOnlyHint: false)
+    const walletNeeded = annotations.requiresWallet === true || annotations.readOnlyHint === false;
+
+    // Skip registration if in read-only mode and a wallet is needed
+    if (options.readOnly && walletNeeded) {
+      return;
+    }
+
+    if (!walletNeeded || isWalletConfigured()) {
+      server.registerTool(name, definition, handler);
+    }
+  };
 
   // ============================================================================
   // WALLET INFORMATION TOOLS (Read-only)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "get_wallet_address",
     {
       description:
@@ -34,6 +57,7 @@ export function registerTRONTools(server: McpServer) {
       annotations: {
         title: "Get Wallet Address",
         readOnlyHint: true,
+        requiresWallet: true,
         destructiveHint: false,
         idempotentHint: true,
         openWorldHint: false,
@@ -77,7 +101,7 @@ export function registerTRONTools(server: McpServer) {
   // NETWORK INFORMATION TOOLS (Read-only)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "get_chain_info",
     {
       description: "Get information about a TRON network: current block number and RPC endpoint",
@@ -127,7 +151,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "get_supported_networks",
     {
       description: "Get a list of all supported TRON networks",
@@ -162,7 +186,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "get_chain_parameters",
     {
       description:
@@ -223,7 +247,7 @@ export function registerTRONTools(server: McpServer) {
   // ADDRESS TOOLS (Read-only)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "convert_address",
     {
       description: "Convert addresses between Hex and Base58 formats",
@@ -275,7 +299,7 @@ export function registerTRONTools(server: McpServer) {
   // BLOCK TOOLS (Read-only)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "get_block",
     {
       description: "Get block details by block number or hash",
@@ -320,7 +344,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "get_latest_block",
     {
       description: "Get the latest block from the network",
@@ -357,7 +381,7 @@ export function registerTRONTools(server: McpServer) {
   // BALANCE TOOLS (Read-only)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "get_balance",
     {
       description: "Get the TRX balance for an address",
@@ -406,7 +430,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "get_token_balance",
     {
       description: "Get the TRC20 token balance for an address",
@@ -466,7 +490,7 @@ export function registerTRONTools(server: McpServer) {
   // TRANSACTION TOOLS (Read-only)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "get_transaction",
     {
       description: "Get transaction details by transaction hash",
@@ -500,7 +524,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "get_transaction_info",
     {
       description: "Get transaction info (receipt/confirmation status, energy usage, logs).",
@@ -538,7 +562,7 @@ export function registerTRONTools(server: McpServer) {
   // SMART CONTRACT TOOLS
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "read_contract",
     {
       description: "Call read-only functions on a smart contract.",
@@ -613,7 +637,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "multicall",
     {
       description: "Execute multiple read-only functions in a single batch call.",
@@ -711,7 +735,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "write_contract",
     {
       description:
@@ -801,7 +825,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "deploy_contract",
     {
       description: "Deploy a smart contract to the TRON network using ABI and Bytecode.",
@@ -884,7 +908,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "estimate_energy",
     {
       description: "Estimate energy consumption for a smart contract call (simulation).",
@@ -955,7 +979,7 @@ export function registerTRONTools(server: McpServer) {
   // TRANSFER TOOLS (Write operations)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "transfer_trx",
     {
       description: "Transfer TRX to an address.",
@@ -1010,7 +1034,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "transfer_trc20",
     {
       description: "Transfer TRC20 tokens to an address.",
@@ -1073,7 +1097,7 @@ export function registerTRONTools(server: McpServer) {
   // STAKING TOOLS (Stake 2.0)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "freeze_balance_v2",
     {
       description: "Freeze TRX to get resources (Stake 2.0).",
@@ -1136,7 +1160,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "unfreeze_balance_v2",
     {
       description: "Unfreeze TRX to release resources (Stake 2.0).",
@@ -1199,7 +1223,7 @@ export function registerTRONTools(server: McpServer) {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "withdraw_expire_unfreeze",
     {
       description:
@@ -1255,7 +1279,7 @@ export function registerTRONTools(server: McpServer) {
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================
 
-  server.registerTool(
+  registerTool(
     "sign_message",
     {
       description: "Sign an arbitrary message using the configured wallet.",

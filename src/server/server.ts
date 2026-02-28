@@ -5,7 +5,7 @@ import { registerTRONPrompts } from "../core/prompts.js";
 import { getSupportedNetworks } from "../core/chains.js";
 
 // Create and start the MCP server
-async function startServer() {
+async function startServer(options: { readOnly?: boolean } = {}) {
   try {
     // Create a new MCP server instance with capabilities
     const server = new McpServer(
@@ -32,11 +32,14 @@ async function startServer() {
 
     // Register all resources, tools, and prompts
     registerTRONResources(server);
-    registerTRONTools(server);
-    registerTRONPrompts(server);
+    registerTRONTools(server, options);
+    registerTRONPrompts(server, options);
 
     // Log server information
     console.error(`mcp-server-tron v1.1.1 initialized`);
+    if (options.readOnly) {
+      console.error("Mode: Read-only (Write tools disabled)");
+    }
     console.error(`Protocol: MCP 2025-06-18`);
     console.error(`Supported networks: ${getSupportedNetworks().length} networks`);
     console.error("Server is ready to handle requests");

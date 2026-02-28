@@ -42,10 +42,12 @@ setInterval(
 
 // Initialize the MCP server
 let server: McpServer | null = null;
-startServer()
+const isReadOnly = process.argv.includes("--readonly") || process.argv.includes("-r");
+
+startServer({ readOnly: isReadOnly })
   .then((s) => {
     server = s;
-    console.error("MCP Server initialized successfully");
+    console.error(`MCP Server initialized successfully${isReadOnly ? " in readonly mode" : ""}`);
   })
   .catch((error) => {
     console.error("Failed to initialize server:", error);

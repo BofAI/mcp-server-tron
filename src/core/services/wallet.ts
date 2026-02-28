@@ -17,6 +17,13 @@ export interface ConfiguredWallet {
   address: string;
 }
 
+/**
+ * Check if a wallet is configured via environment variables
+ */
+export const isWalletConfigured = (): boolean => {
+  return !!(process.env.TRON_PRIVATE_KEY || process.env.TRON_MNEMONIC);
+};
+
 export const getConfiguredWallet = (): ConfiguredWallet => {
   const privateKey = process.env.TRON_PRIVATE_KEY;
   const mnemonic = process.env.TRON_MNEMONIC;
