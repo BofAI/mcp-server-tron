@@ -218,6 +218,46 @@ For developers running from the cloned repository.
 }
 ```
 
+**Option C: Official Hosted Server (Remote)**
+Connect to the official hosted server at `https://mcp-server.bankofai.io`. No installation required, readonly mode.
+
+Claude Desktop / Cursor / Claude Code:
+
+```json
+{
+  "mcpServers": {
+    "mcp-server-tron": {
+      "url": "https://mcp-server.bankofai.io/mcp"
+    }
+  }
+}
+```
+
+Google Antigravity:
+
+```json
+{
+  "mcpServers": {
+    "mcp-server-tron": {
+      "serverUrl": "https://mcp-server.bankofai.io/mcp"
+    }
+  }
+}
+```
+
+Opencode:
+
+```json
+{
+  "mcp": {
+    "mcp-server-tron": {
+      "type": "remote",
+      "url": "https://mcp-server.bankofai.io/mcp"
+    }
+  }
+}
+```
+
 **Important**: We recommend omitting the `env` section if you have already set these variables in your system environment. If your MCP client doesn't inherit system variables, use placeholders or ensure the config file is not shared or committed to version control.
 
 ## API Reference
