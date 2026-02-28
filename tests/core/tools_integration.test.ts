@@ -23,7 +23,19 @@ describe("TRON Tools Integration (Nile)", () => {
       return originalRegisterTool(name, schema, handler);
     };
 
+    // Set a dummy private key to ensure write tools are registered for the test
+    const originalKey = process.env.TRON_PRIVATE_KEY;
+    process.env.TRON_PRIVATE_KEY =
+      "0000000000000000000000000000000000000000000000000000000000000001";
+
     registerTRONTools(server);
+
+    // Restore original key
+    if (originalKey) {
+      process.env.TRON_PRIVATE_KEY = originalKey;
+    } else {
+      delete process.env.TRON_PRIVATE_KEY;
+    }
   });
 
   it("get_balance should return real balance from Nile", async () => {
