@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - 2026-02-28
+
+### Added
+
+- Support for `--readonly` or `-r` command-line argument to disable write operations.
+- Dynamic tool registration: "Write" tools are now hidden if no wallet is configured or if in readonly mode.
+- Integrated `requiresWallet` and `isReadOnly` metadata for tools and prompts for better security control.
+- Updated `AGENTS.md` with detailed contribution guidelines for agentic workflows.
+
+### Changed
+
+- Refined tool filtering logic: Read-only wallet tools (like `get_wallet_address`) remain visible in readonly mode if a key is present.
+- Uniformed tool and prompt registration using local helper functions.
+
 ## [1.1.2] - 2026-02-08
 
 ### Changed

@@ -104,7 +104,11 @@ describe("TRON Tools Unit Tests", () => {
       // Write tools should NOT be registered
       expect(registeredTools.has("transfer_trx")).toBe(false);
       expect(registeredTools.has("write_contract")).toBe(false);
-      expect(registeredTools.has("get_wallet_address")).toBe(false); // requiresWallet: true
+
+      // get_wallet_address IS a read tool (readOnlyHint: true)
+      // Since isWalletConfigured is mocked to true, it SHOULD be registered
+      // even in readonly mode because it doesn't perform write operations.
+      expect(registeredTools.has("get_wallet_address")).toBe(true);
 
       // Read tools should STILL be registered
       expect(registeredTools.has("get_balance")).toBe(true);

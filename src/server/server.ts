@@ -11,7 +11,7 @@ async function startServer(options: { readOnly?: boolean } = {}) {
     const server = new McpServer(
       {
         name: "mcp-server-tron",
-        version: "1.1.1",
+        version: "1.1.3",
       },
       {
         capabilities: {
@@ -36,7 +36,7 @@ async function startServer(options: { readOnly?: boolean } = {}) {
     registerTRONPrompts(server, options);
 
     // Log server information
-    console.error(`mcp-server-tron v1.1.1 initialized`);
+    console.error(`mcp-server-tron v1.1.3 initialized`);
     if (options.readOnly) {
       console.error("Mode: Read-only (Write tools disabled)");
     }
