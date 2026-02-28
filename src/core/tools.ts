@@ -29,19 +29,20 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
    */
   const registerTool = (name: string, definition: any, handler: any) => {
     const annotations = definition.annotations || {};
-    // Wallet is needed if:
-    // 1. Explicitly requested via requiresWallet
-    // 2. Tool is not read-only (readOnlyHint: false)
-    const walletNeeded = annotations.requiresWallet === true || annotations.readOnlyHint === false;
+    const isReadOnly = annotations.readOnlyHint === true;
+    const walletNeeded = annotations.requiresWallet === true || !isReadOnly;
 
-    // Skip registration if in read-only mode and a wallet is needed
-    if (options.readOnly && walletNeeded) {
+    // 1. Skip if in read-only mode and the tool is a write operation
+    if (options.readOnly && !isReadOnly) {
       return;
     }
 
-    if (!walletNeeded || isWalletConfigured()) {
-      server.registerTool(name, definition, handler);
+    // 2. Skip if the tool needs a wallet but none is configured
+    if (walletNeeded && !isWalletConfigured()) {
+      return;
     }
+
+    server.registerTool(name, definition, handler);
   };
 
   // ============================================================================

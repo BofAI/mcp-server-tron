@@ -29,11 +29,21 @@ export function registerTRONPrompts(server: McpServer, options: { readOnly?: boo
     name: string,
     definition: any,
     handler: any,
-    extra: { requiresWallet?: boolean } = {},
+    extra: { requiresWallet?: boolean; isReadOnly?: boolean } = {},
   ) => {
-    if (extra.requiresWallet && (options.readOnly || !isWalletConfigured())) {
+    const isReadOnly = extra.isReadOnly !== false; // Default to true (safe)
+    const walletNeeded = extra.requiresWallet === true;
+
+    // 1. Skip if in read-only mode and the prompt is for write operations
+    if (options.readOnly && !isReadOnly) {
       return;
     }
+
+    // 2. Skip if the prompt needs a wallet but none is configured
+    if (walletNeeded && !isWalletConfigured()) {
+      return;
+    }
+
     server.registerPrompt(name, definition, handler);
   };
 
@@ -108,7 +118,7 @@ ${
         },
       ],
     }),
-    { requiresWallet: true },
+    { requiresWallet: true, isReadOnly: false },
   );
 
   registerPrompt(
