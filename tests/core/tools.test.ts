@@ -10,6 +10,7 @@ vi.mock("../../src/core/services/index", async () => {
     ...(actual as any),
     getWalletAddressFromKey: vi.fn(),
     getConfiguredPrivateKey: vi.fn(),
+    isWalletConfigured: vi.fn(),
     getChainId: vi.fn(),
     getBlockNumber: vi.fn(),
     getTRXBalance: vi.fn(),
@@ -51,12 +52,14 @@ describe("TRON Tools Unit Tests", () => {
       return originalRegisterTool(name, schema, handler);
     };
 
+    (services.isWalletConfigured as any).mockReturnValue(true);
     registerTRONTools(server);
     vi.clearAllMocks();
   });
 
   describe("Registration", () => {
     it("should register all 22 TRON tools", () => {
+      // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
         "get_chain_info",
@@ -84,6 +87,32 @@ describe("TRON Tools Unit Tests", () => {
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
       });
+    });
+
+    it("should NOT register write tools when readOnly option is true", () => {
+      registeredTools = new Map();
+      const localServer = new McpServer({ name: "test", version: "1" });
+      const originalRegisterTool = localServer.registerTool.bind(localServer);
+      localServer.registerTool = (name: string, schema: any, handler: any) => {
+        registeredTools.set(name, { schema, handler });
+        return originalRegisterTool(name, schema, handler);
+      };
+
+      (services.isWalletConfigured as any).mockReturnValue(true);
+      registerTRONTools(localServer, { readOnly: true });
+
+      // Write tools should NOT be registered
+      expect(registeredTools.has("transfer_trx")).toBe(false);
+      expect(registeredTools.has("write_contract")).toBe(false);
+
+      // get_wallet_address IS a read tool (readOnlyHint: true)
+      // Since isWalletConfigured is mocked to true, it SHOULD be registered
+      // even in readonly mode because it doesn't perform write operations.
+      expect(registeredTools.has("get_wallet_address")).toBe(true);
+
+      // Read tools should STILL be registered
+      expect(registeredTools.has("get_balance")).toBe(true);
+      expect(registeredTools.has("get_chain_info")).toBe(true);
     });
   });
 

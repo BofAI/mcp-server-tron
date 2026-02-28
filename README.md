@@ -38,6 +38,7 @@ Key capabilities:
 - **Address Management**: Convert between Hex (0x...) and Base58 (T...) formats.
 - **Wallet Integration**: Support for Private Key and Mnemonic (BIP-39) wallets.
 - **Multi-Network**: Seamless support for Mainnet, Nile, and Shasta.
+- **Dynamic Access Control**: Automatically hides write tools if no wallet is configured or if `--readonly` mode is active.
 
 ## Features
 
@@ -141,6 +142,9 @@ The server runs on port **3001** by default in HTTP mode.
 ```bash
 # Start in stdio mode (for MCP clients like Claude Desktop/Cursor)
 npm start
+
+# Start in readonly mode (disables write tools)
+npm start -- --readonly
 
 # Start in HTTP mode (Server-Sent Events)
 npm run start:http
