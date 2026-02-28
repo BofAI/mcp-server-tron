@@ -34,7 +34,10 @@ export function registerTRONPrompts(server: McpServer, options: { readOnly?: boo
     handler: (args: z.infer<z.ZodObject<T>>) => any,
     extra: { requiresWallet?: boolean; isReadOnly?: boolean } = {},
   ) => {
-    const isReadOnly = extra.isReadOnly !== false; // Default to true (safe)
+    // Default to true: most prompts are informational and safe in readonly mode.
+    // This differs from tools.ts where the default is false (write-capable) because
+    // unregistered tools could mutate state, while prompts only guide the LLM.
+    const isReadOnly = extra.isReadOnly !== false;
     const walletNeeded = extra.requiresWallet === true;
 
     // 1. Skip if in read-only mode and the prompt is for write operations

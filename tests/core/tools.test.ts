@@ -114,6 +114,41 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("get_balance")).toBe(true);
       expect(registeredTools.has("get_chain_info")).toBe(true);
     });
+
+    it("should NOT register wallet-dependent or write tools when no wallet is configured", () => {
+      registeredTools = new Map();
+      const localServer = new McpServer({ name: "test", version: "1" });
+      const originalRegisterTool = localServer.registerTool.bind(localServer);
+      localServer.registerTool = (name: string, schema: any, handler: any) => {
+        registeredTools.set(name, { schema, handler });
+        return originalRegisterTool(name, schema, handler);
+      };
+
+      (services.isWalletConfigured as any).mockReturnValue(false);
+      registerTRONTools(localServer);
+
+      // Write tools should NOT be registered (no wallet)
+      expect(registeredTools.has("transfer_trx")).toBe(false);
+      expect(registeredTools.has("transfer_trc20")).toBe(false);
+      expect(registeredTools.has("write_contract")).toBe(false);
+      expect(registeredTools.has("deploy_contract")).toBe(false);
+      expect(registeredTools.has("sign_message")).toBe(false);
+      expect(registeredTools.has("freeze_balance_v2")).toBe(false);
+
+      // get_wallet_address has requiresWallet: true, should be hidden
+      expect(registeredTools.has("get_wallet_address")).toBe(false);
+
+      // Pure read tools should STILL be registered
+      expect(registeredTools.has("get_balance")).toBe(true);
+      expect(registeredTools.has("get_chain_info")).toBe(true);
+      expect(registeredTools.has("get_supported_networks")).toBe(true);
+      expect(registeredTools.has("convert_address")).toBe(true);
+      expect(registeredTools.has("get_block")).toBe(true);
+      expect(registeredTools.has("get_latest_block")).toBe(true);
+      expect(registeredTools.has("estimate_energy")).toBe(true);
+      expect(registeredTools.has("read_contract")).toBe(true);
+      expect(registeredTools.has("multicall")).toBe(true);
+    });
   });
 
   describe("Wallet & Address Tools", () => {

@@ -1,8 +1,12 @@
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerTRONResources } from "../core/resources.js";
 import { registerTRONTools } from "../core/tools.js";
 import { registerTRONPrompts } from "../core/prompts.js";
 import { getSupportedNetworks } from "../core/chains.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../../package.json");
 
 // Create and start the MCP server
 async function startServer(options: { readOnly?: boolean } = {}) {
@@ -11,7 +15,7 @@ async function startServer(options: { readOnly?: boolean } = {}) {
     const server = new McpServer(
       {
         name: "mcp-server-tron",
-        version: "1.1.3",
+        version,
       },
       {
         capabilities: {
@@ -36,7 +40,7 @@ async function startServer(options: { readOnly?: boolean } = {}) {
     registerTRONPrompts(server, options);
 
     // Log server information
-    console.error(`mcp-server-tron v1.1.3 initialized`);
+    console.error(`mcp-server-tron v${version} initialized`);
     if (options.readOnly) {
       console.error("Mode: Read-only (Write tools disabled)");
     }

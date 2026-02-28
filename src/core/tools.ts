@@ -44,6 +44,9 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     handler: (args: z.infer<z.ZodObject<T>>) => Promise<any>,
   ) => {
     const annotations = definition.annotations || {};
+    // Default to false: tools without explicit readOnlyHint are treated as write-capable
+    // for safety. This is stricter than prompts.ts (which defaults to read-only) because
+    // tools can directly mutate blockchain state.
     const isReadOnly = annotations.readOnlyHint === true;
     const walletNeeded = annotations.requiresWallet === true || !isReadOnly;
 
@@ -55,6 +58,12 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     // 2. Skip if the tool needs a wallet but none is configured
     if (walletNeeded && !isWalletConfigured()) {
       return;
+    }
+
+    // Strip custom `requiresWallet` before passing to SDK (not a standard MCP annotation)
+    if (definition.annotations?.requiresWallet !== undefined) {
+      const { requiresWallet: _, ...standardAnnotations } = definition.annotations;
+      definition = { ...definition, annotations: standardAnnotations };
     }
 
     server.registerTool(name, definition as any, handler as any);
