@@ -27,7 +27,22 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
    * If a tool is not read-only or explicitly requires a wallet, it will only be
    * registered if a wallet is configured via environment variables.
    */
-  const registerTool = (name: string, definition: any, handler: any) => {
+  const registerTool = <T extends z.ZodRawShape>(
+    name: string,
+    definition: {
+      inputSchema?: T;
+      description?: string;
+      annotations?: {
+        title?: string;
+        readOnlyHint?: boolean;
+        requiresWallet?: boolean;
+        destructiveHint?: boolean;
+        idempotentHint?: boolean;
+        openWorldHint?: boolean;
+      };
+    },
+    handler: (args: z.infer<z.ZodObject<T>>) => Promise<any>,
+  ) => {
     const annotations = definition.annotations || {};
     const isReadOnly = annotations.readOnlyHint === true;
     const walletNeeded = annotations.requiresWallet === true || !isReadOnly;
@@ -42,7 +57,7 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
       return;
     }
 
-    server.registerTool(name, definition, handler);
+    server.registerTool(name, definition as any, handler as any);
   };
 
   // ============================================================================

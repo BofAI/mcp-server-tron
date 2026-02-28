@@ -25,10 +25,13 @@ export function registerTRONPrompts(server: McpServer, options: { readOnly?: boo
    * Prompts that guide write operations should only be registered if a wallet
    * is configured and we are not in read-only mode.
    */
-  const registerPrompt = (
+  const registerPrompt = <T extends z.ZodRawShape>(
     name: string,
-    definition: any,
-    handler: any,
+    definition: {
+      description?: string;
+      argsSchema?: T;
+    },
+    handler: (args: z.infer<z.ZodObject<T>>) => any,
     extra: { requiresWallet?: boolean; isReadOnly?: boolean } = {},
   ) => {
     const isReadOnly = extra.isReadOnly !== false; // Default to true (safe)
@@ -44,7 +47,7 @@ export function registerTRONPrompts(server: McpServer, options: { readOnly?: boo
       return;
     }
 
-    server.registerPrompt(name, definition, handler);
+    server.registerPrompt(name, definition as any, handler as any);
   };
 
   // ============================================================================
