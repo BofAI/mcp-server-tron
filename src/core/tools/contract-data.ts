@@ -15,20 +15,11 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("Contract address (base58 T-address or hex 41-prefixed)"),
-        limit: z
-          .number()
-          .optional()
-          .describe("Max transactions per page (default 20, max 200)"),
-        fingerprint: z
-          .string()
-          .optional()
-          .describe("Pagination token from previous response"),
+        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
-        orderBy: z
-          .string()
-          .optional()
-          .describe("Sort field, e.g. 'block_timestamp,desc'"),
+        orderBy: z.string().optional().describe("Sort field, e.g. 'block_timestamp,desc'"),
         minTimestamp: z.number().optional().describe("Filter: minimum block timestamp (ms)"),
         maxTimestamp: z.number().optional().describe("Filter: maximum block timestamp (ms)"),
         network: z.string().optional().describe("Network name. Defaults to mainnet."),
@@ -55,7 +46,15 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
       try {
         const result = await services.getContractTransactions(
           address,
-          { limit, fingerprint, onlyConfirmed, onlyUnconfirmed, orderBy, minTimestamp, maxTimestamp },
+          {
+            limit,
+            fingerprint,
+            onlyConfirmed,
+            onlyUnconfirmed,
+            orderBy,
+            minTimestamp,
+            maxTimestamp,
+          },
           network,
         );
         return {
@@ -86,20 +85,11 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("Contract address (base58 T-address or hex 41-prefixed)"),
-        limit: z
-          .number()
-          .optional()
-          .describe("Max transactions per page (default 20, max 200)"),
-        fingerprint: z
-          .string()
-          .optional()
-          .describe("Pagination token from previous response"),
+        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
-        orderBy: z
-          .string()
-          .optional()
-          .describe("Sort field, e.g. 'block_timestamp,desc'"),
+        orderBy: z.string().optional().describe("Sort field, e.g. 'block_timestamp,desc'"),
         minTimestamp: z.number().optional().describe("Filter: minimum block timestamp (ms)"),
         maxTimestamp: z.number().optional().describe("Filter: maximum block timestamp (ms)"),
         network: z.string().optional().describe("Network name. Defaults to mainnet."),
@@ -126,7 +116,15 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
       try {
         const result = await services.getContractInternalTransactions(
           address,
-          { limit, fingerprint, onlyConfirmed, onlyUnconfirmed, orderBy, minTimestamp, maxTimestamp },
+          {
+            limit,
+            fingerprint,
+            onlyConfirmed,
+            onlyUnconfirmed,
+            orderBy,
+            minTimestamp,
+            maxTimestamp,
+          },
           network,
         );
         return {
@@ -157,18 +155,9 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("TRC20 token contract address (base58 T-address or hex 41-prefixed)"),
-        limit: z
-          .number()
-          .optional()
-          .describe("Max holders per page (default 20, max 200)"),
-        fingerprint: z
-          .string()
-          .optional()
-          .describe("Pagination token from previous response"),
-        orderBy: z
-          .string()
-          .optional()
-          .describe("Sort field, e.g. 'balance,desc'"),
+        limit: z.number().optional().describe("Max holders per page (default 20, max 200)"),
+        fingerprint: z.string().optional().describe("Pagination token from previous response"),
+        orderBy: z.string().optional().describe("Sort field, e.g. 'balance,desc'"),
         network: z.string().optional().describe("Network name. Defaults to mainnet."),
       },
       annotations: {

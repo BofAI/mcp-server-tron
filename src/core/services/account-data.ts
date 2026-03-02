@@ -166,7 +166,6 @@ export function formatTransactions(raw: any): {
   const transactions: FormattedTransaction[] = data.map((tx: any) => {
     const contract = tx.raw_data?.contract?.[0] ?? {};
     const value = contract.parameter?.value ?? {};
-    const info = tx.ret?.[0] ?? {};
     const fee = tx.cost?.fee ?? 0;
 
     return {
