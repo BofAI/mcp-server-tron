@@ -8,7 +8,7 @@ export function registerEventTools(registerTool: RegisterToolFn) {
     {
       description: "Get all events emitted by a specific transaction.",
       inputSchema: {
-        transactionId: z.string().describe("The transaction ID (hash) to query events for"),
+        transactionId: z.string().min(1).describe("The transaction ID (hash) to query events for"),
         onlyConfirmed: z
           .boolean()
           .optional()

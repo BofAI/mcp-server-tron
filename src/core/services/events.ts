@@ -73,16 +73,11 @@ export function formatEventData(raw: EventResult): FormattedEventResponse {
     };
   });
 
-  const response: FormattedEventResponse = {
+  return {
     events,
     totalEvents: events.length,
+    ...(raw.meta?.fingerprint ? { fingerprint: raw.meta.fingerprint } : {}),
   };
-
-  if (raw.meta?.fingerprint) {
-    response.fingerprint = raw.meta.fingerprint;
-  }
-
-  return response;
 }
 
 /**
