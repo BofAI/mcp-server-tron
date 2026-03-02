@@ -47,7 +47,7 @@ This document provides essential information for AI agents working on this repos
 ### 🏗 Architecture
 
 - **src/core/services**: Contains the business logic and TronWeb integrations.
-- **src/core/tools.ts**: MCP tool definitions and schema validation using `zod`.
+- **src/core/tools/**: MCP tool definitions split by category, with schema validation using `zod`.
 - **src/core/prompts.ts**: MCP prompt definitions.
 - **src/server**: Protocol-specific server implementations (Stdio/HTTP).
 
@@ -97,7 +97,7 @@ This document provides essential information for AI agents working on this repos
 ### Adding a New Tool
 
 1.  **Define Logic**: Add a new service in `src/core/services/` if it involves complex blockchain interaction.
-2.  **Register Tool**: Open `src/core/tools.ts` and use the local `registerTool` helper.
+2.  **Register Tool**: Add to the appropriate category file in `src/core/tools/` (or create a new one) using the `registerTool` helper.
 3.  **Schema**: Define the input schema using `zod`.
 4.  **Error Handling**: Wrap the implementation in a `try-catch` block.
 5.  **Documentation**: Add a clear description and title in `annotations`.
@@ -122,6 +122,6 @@ The server supports multiple networks (`mainnet`, `nile`, `shasta`).
 
 ## 📝 Additional Notes
 
-- Follow the existing pattern for registering tools in `src/core/tools.ts`.
+- Follow the existing pattern for registering tools in `src/core/tools/`.
 - When adding new network support, update `src/core/chains.ts`.
 - Keep documentation in `README.md` and `AGENTS.md` up to date with new features.

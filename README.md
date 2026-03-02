@@ -304,11 +304,21 @@ Opencode:
 
 #### Smart Contracts
 
-| Tool Name        | Description                                | Key Parameters                                                |
-| :--------------- | :----------------------------------------- | :------------------------------------------------------------ |
-| `read_contract`  | Call read-only (`view`/`pure`) functions.  | `contractAddress`, `functionName`, `args`, `network`          |
-| `multicall`      | Execute multiple read calls in one batch.  | `calls`, `network`                                            |
-| `write_contract` | Execute state-changing contract functions. | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| Tool Name         | Description                                       | Key Parameters                                                |
+| :---------------- | :------------------------------------------------ | :------------------------------------------------------------ |
+| `read_contract`   | Call read-only (`view`/`pure`) functions.          | `contractAddress`, `functionName`, `args`, `network`          |
+| `multicall`       | Execute multiple read calls in one batch.          | `calls`, `network`                                            |
+| `write_contract`  | Execute state-changing contract functions.         | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| `deploy_contract` | Deploy a smart contract with ABI and bytecode.     | `abi`, `bytecode`, `args`, `network`                          |
+| `estimate_energy` | Estimate energy consumption for a contract call.   | `address`, `functionName`, `abi`, `network`                   |
+
+#### Staking (Stake 2.0)
+
+| Tool Name                   | Description                                          | Key Parameters                |
+| :-------------------------- | :--------------------------------------------------- | :---------------------------- |
+| `freeze_balance_v2`         | Freeze TRX to get resources (BANDWIDTH/ENERGY).      | `amount`, `resource`, `network` |
+| `unfreeze_balance_v2`       | Unfreeze TRX to release resources.                   | `amount`, `resource`, `network` |
+| `withdraw_expire_unfreeze`  | Withdraw expired unfrozen balance back to available.  | `network`                     |
 
 #### Signing & Security
 
@@ -337,7 +347,7 @@ mcp-server-tron/
 ├── src/
 │   ├── core/
 │   │   ├── chains.ts           # Network definitions
-│   │   ├── tools.ts            # MCP Tool definitions
+│   │   ├── tools/              # MCP Tool definitions (split by category)
 │   │   ├── prompts.ts          # MCP Prompt definitions
 │   │   └── services/           # Business logic (TronWeb integration)
 │   │       ├── wallet.ts       # Wallet management

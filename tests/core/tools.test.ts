@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerTRONTools } from "../../src/core/tools";
+import { registerTRONTools } from "../../src/core/tools/index";
 import * as services from "../../src/core/services/index";
 
 // Mock all services
