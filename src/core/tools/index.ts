@@ -14,6 +14,7 @@ import { registerStakingTools } from "./staking.js";
 import { registerNodeTools } from "./node.js";
 import { registerMempoolTools } from "./mempool.js";
 import { registerEventTools } from "./event.js";
+import { registerAccountTools } from "./account.js";
 
 /**
  * Register all TRON-related tools with the MCP server
@@ -92,4 +93,5 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   registerNodeTools(registerTool);
   registerMempoolTools(registerTool);
   registerEventTools(registerTool);
+  registerAccountTools(registerTool);
 }

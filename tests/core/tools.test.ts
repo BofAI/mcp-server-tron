@@ -40,6 +40,17 @@ vi.mock("../../src/core/services/index", async () => {
     getEventsByContractAddress: vi.fn(),
     getEventsByBlockNumber: vi.fn(),
     getEventsOfLatestBlock: vi.fn(),
+    getAccount: vi.fn(),
+    getAccountBalance: vi.fn(),
+    generateAccount: vi.fn(),
+    validateAddress: vi.fn(),
+    getAccountNet: vi.fn(),
+    getAccountResource: vi.fn(),
+    getDelegatedResource: vi.fn(),
+    getDelegatedResourceIndex: vi.fn(),
+    createAccount: vi.fn(),
+    updateAccount: vi.fn(),
+    updateAccountPermissions: vi.fn(),
   };
 });
 
@@ -67,8 +78,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 27 TRON tools", () => {
-    it("should register all 26 TRON tools", () => {
+    it("should register all 42 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -102,6 +112,17 @@ describe("TRON Tools Unit Tests", () => {
         "get_events_by_contract_address",
         "get_events_by_block_number",
         "get_events_of_latest_block",
+        "get_account",
+        "get_account_balance",
+        "generate_account",
+        "validate_address",
+        "get_account_net",
+        "get_account_resource",
+        "get_delegated_resource",
+        "get_delegated_resource_index",
+        "create_account",
+        "update_account",
+        "account_permission_update",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -123,6 +144,9 @@ describe("TRON Tools Unit Tests", () => {
       // Write tools should NOT be registered
       expect(registeredTools.has("transfer_trx")).toBe(false);
       expect(registeredTools.has("write_contract")).toBe(false);
+      expect(registeredTools.has("create_account")).toBe(false);
+      expect(registeredTools.has("update_account")).toBe(false);
+      expect(registeredTools.has("account_permission_update")).toBe(false);
 
       // get_wallet_address IS a read tool (readOnlyHint: true)
       // Since isWalletConfigured is mocked to true, it SHOULD be registered
@@ -153,6 +177,9 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("deploy_contract")).toBe(false);
       expect(registeredTools.has("sign_message")).toBe(false);
       expect(registeredTools.has("freeze_balance_v2")).toBe(false);
+      expect(registeredTools.has("create_account")).toBe(false);
+      expect(registeredTools.has("update_account")).toBe(false);
+      expect(registeredTools.has("account_permission_update")).toBe(false);
 
       // get_wallet_address has requiresWallet: true, should be hidden
       expect(registeredTools.has("get_wallet_address")).toBe(false);
@@ -176,6 +203,14 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("get_events_by_contract_address")).toBe(true);
       expect(registeredTools.has("get_events_by_block_number")).toBe(true);
       expect(registeredTools.has("get_events_of_latest_block")).toBe(true);
+      expect(registeredTools.has("get_account")).toBe(true);
+      expect(registeredTools.has("get_account_balance")).toBe(true);
+      expect(registeredTools.has("generate_account")).toBe(true);
+      expect(registeredTools.has("validate_address")).toBe(true);
+      expect(registeredTools.has("get_account_net")).toBe(true);
+      expect(registeredTools.has("get_account_resource")).toBe(true);
+      expect(registeredTools.has("get_delegated_resource")).toBe(true);
+      expect(registeredTools.has("get_delegated_resource_index")).toBe(true);
     });
   });
 
@@ -481,6 +516,9 @@ describe("TRON Tools Unit Tests", () => {
       const result = await registeredTools.get("get_pending_size").handler({});
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error fetching pending size");
+    });
+  });
+
   describe("Event Tools", () => {
     // Mock raw API response structure (before formatEventData transforms it)
     const mockEventResponse = {
@@ -579,6 +617,184 @@ describe("TRON Tools Unit Tests", () => {
       const result = await registeredTools.get("get_events_of_latest_block").handler({});
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error fetching events of latest block");
+    });
+  });
+
+  describe("Account Tools", () => {
+    it("get_account should fetch full account info", async () => {
+      (services.getAccount as any).mockResolvedValue({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        balance: 1000000,
+      });
+      const result = await registeredTools.get("get_account").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.network).toBe("nile");
+      expect(content.balance).toBe(1000000);
+    });
+
+    it("get_account_balance should fetch balance at block", async () => {
+      (services.getAccountBalance as any).mockResolvedValue({
+        balance: 500000,
+        block_identifier: { hash: "abc", number: 100 },
+      });
+      const result = await registeredTools.get("get_account_balance").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        blockHash: "abc",
+        blockNumber: 100,
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.balance).toBe(500000);
+    });
+
+    it("generate_account should return new keypair", async () => {
+      (services.generateAccount as any).mockResolvedValue({
+        privateKey: "privkey123",
+        publicKey: "pubkey456",
+        address: { base58: "Taddr", hex: "41addr" },
+      });
+      const result = await registeredTools.get("generate_account").handler({});
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.privateKey).toBe("privkey123");
+      expect(content.publicKey).toBe("pubkey456");
+    });
+
+    it("validate_address should return validation result", async () => {
+      (services.validateAddress as any).mockReturnValue({
+        isValid: true,
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        format: "base58",
+      });
+      const result = await registeredTools.get("validate_address").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.isValid).toBe(true);
+      expect(content.format).toBe("base58");
+    });
+
+    it("get_account_net should fetch bandwidth info", async () => {
+      (services.getAccountNet as any).mockResolvedValue({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        bandwidth: 5000,
+      });
+      const result = await registeredTools.get("get_account_net").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.bandwidth).toBe(5000);
+    });
+
+    it("get_account_resource should fetch resource info", async () => {
+      (services.getAccountResource as any).mockResolvedValue({
+        TotalEnergyLimit: 1000000,
+        TotalNetLimit: 500000,
+      });
+      const result = await registeredTools.get("get_account_resource").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.network).toBe("nile");
+      expect(content.TotalEnergyLimit).toBe(1000000);
+    });
+
+    it("get_delegated_resource should fetch delegation details", async () => {
+      (services.getDelegatedResource as any).mockResolvedValue({
+        delegatedResource: [{ frozen_balance_for_energy: 100 }],
+      });
+      const result = await registeredTools.get("get_delegated_resource").handler({
+        fromAddress: "Tfrom",
+        toAddress: "Tto",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.fromAddress).toBe("Tfrom");
+      expect(content.toAddress).toBe("Tto");
+    });
+
+    it("get_delegated_resource_index should fetch delegation index", async () => {
+      (services.getDelegatedResourceIndex as any).mockResolvedValue({
+        account: "Taddr",
+        toAccounts: ["Tto1"],
+      });
+      const result = await registeredTools.get("get_delegated_resource_index").handler({
+        address: "Taddr",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.address).toBe("Taddr");
+    });
+
+    it("create_account should activate a new address", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.createAccount as any).mockResolvedValue("txhash123");
+      const result = await registeredTools.get("create_account").handler({
+        address: "Tnewaddr",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("txhash123");
+      expect(content.newAccount).toBe("Tnewaddr");
+      expect(content.from).toBe("Tsender");
+    });
+
+    it("update_account should set account name", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.updateAccount as any).mockResolvedValue("txhash456");
+      const result = await registeredTools.get("update_account").handler({
+        accountName: "MyAccount",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("txhash456");
+      expect(content.accountName).toBe("MyAccount");
+    });
+
+    it("account_permission_update should update permissions", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.updateAccountPermissions as any).mockResolvedValue("txhash789");
+      const result = await registeredTools.get("account_permission_update").handler({
+        ownerPermission: {
+          type: 0,
+          permission_name: "owner",
+          threshold: 1,
+          keys: [{ address: "Tsender", weight: 1 }],
+        },
+        activePermissions: {
+          type: 2,
+          permission_name: "active",
+          threshold: 1,
+          operations: "7fff1fc0033e0000000000000000000000000000000000000000000000000000",
+          keys: [{ address: "Tsender", weight: 1 }],
+        },
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("txhash789");
+    });
+
+    it("get_account should handle errors gracefully", async () => {
+      (services.getAccount as any).mockRejectedValue(new Error("Network error"));
+      const result = await registeredTools.get("get_account").handler({
+        address: "Taddr",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Network error");
     });
   });
 });

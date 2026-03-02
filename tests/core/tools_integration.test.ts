@@ -152,4 +152,90 @@ describe("TRON Tools Integration (Nile)", () => {
     const deployTool = registeredTools.get("deploy_contract");
     expect(deployTool).toBeDefined();
   });
+
+  // ============================================================================
+  // Account Tools Integration
+  // ============================================================================
+
+  it("get_account should return real account info from Nile", async () => {
+    const tool = registeredTools.get("get_account");
+    const result = await tool.handler({
+      address: TEST_ADDRESS,
+      network: "nile",
+    });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content.network).toBe("nile");
+  }, 20000);
+
+  it("get_account_resource should return resource info from Nile", async () => {
+    const tool = registeredTools.get("get_account_resource");
+    const result = await tool.handler({
+      address: TEST_ADDRESS,
+      network: "nile",
+    });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content.network).toBe("nile");
+    expect(content.address).toBe(TEST_ADDRESS);
+  }, 20000);
+
+  it("get_account_net should return bandwidth info from Nile", async () => {
+    const tool = registeredTools.get("get_account_net");
+    const result = await tool.handler({
+      address: TEST_ADDRESS,
+      network: "nile",
+    });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content.network).toBe("nile");
+    expect(content.address).toBe(TEST_ADDRESS);
+    expect(typeof content.bandwidth).toBe("number");
+  }, 20000);
+
+  it("validate_address should validate a known address", async () => {
+    const tool = registeredTools.get("validate_address");
+    const result = await tool.handler({
+      address: TEST_ADDRESS,
+    });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content.isValid).toBe(true);
+    expect(content.format).toBe("base58");
+  });
+
+  it("generate_account should generate a new keypair offline", async () => {
+    const tool = registeredTools.get("generate_account");
+    const result = await tool.handler({});
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content.privateKey).toBeDefined();
+    expect(content.publicKey).toBeDefined();
+    expect(content.address).toBeDefined();
+    expect(content.message).toContain("Account generated offline");
+  }, 10000);
+
+  it("get_delegated_resource_index should return delegation info", async () => {
+    const tool = registeredTools.get("get_delegated_resource_index");
+    const result = await tool.handler({
+      address: TEST_ADDRESS,
+      network: "nile",
+    });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content.network).toBe("nile");
+    expect(content.address).toBe(TEST_ADDRESS);
+  }, 20000);
+
+  it("account write tools should be registered", () => {
+    expect(registeredTools.has("create_account")).toBe(true);
+    expect(registeredTools.has("update_account")).toBe(true);
+    expect(registeredTools.has("account_permission_update")).toBe(true);
+  });
 });

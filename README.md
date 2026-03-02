@@ -312,6 +312,22 @@ Opencode:
 | `deploy_contract` | Deploy a smart contract with ABI and bytecode.     | `abi`, `bytecode`, `args`, `network`                          |
 | `estimate_energy` | Estimate energy consumption for a contract call.   | `address`, `functionName`, `abi`, `network`                   |
 
+#### Account Management
+
+| Tool Name                       | Description                                                     | Key Parameters                                         |
+| :------------------------------ | :-------------------------------------------------------------- | :----------------------------------------------------- |
+| `get_account`                   | Get full account info (balance, resources, permissions, etc.).   | `address`, `network`                                   |
+| `get_account_balance`           | Get TRX balance at a specific block height.                     | `address`, `blockHash`, `blockNumber`, `network`       |
+| `generate_account`              | Generate a new TRON keypair offline.                            | -                                                      |
+| `validate_address`              | Validate a TRON address and detect format.                      | `address`                                              |
+| `get_account_net`               | Get bandwidth information for an account.                       | `address`, `network`                                   |
+| `get_account_resource`          | Get energy, bandwidth, and delegation details.                  | `address`, `network`                                   |
+| `get_delegated_resource`        | Query delegated resources between two accounts (Stake 2.0).     | `fromAddress`, `toAddress`, `network`                  |
+| `get_delegated_resource_index`  | Query delegation index (who delegated to/from this account).    | `address`, `network`                                   |
+| `create_account`                | Activate a new account on-chain (costs bandwidth).              | `address`, `network`                                   |
+| `update_account`                | Set account name (can only be set once).                        | `accountName`, `network`                               |
+| `account_permission_update`     | Update multi-signature permissions.                             | `ownerPermission`, `activePermissions`, `network`      |
+
 #### Staking (Stake 2.0)
 
 | Tool Name                   | Description                                          | Key Parameters                |
