@@ -31,7 +31,9 @@ export function registerEventTools(registerTool: RegisterToolFn) {
           network,
         );
         return {
-          content: [{ type: "text", text: services.helpers.formatJson(result) }],
+          content: [
+            { type: "text", text: services.helpers.formatJson(services.formatEventData(result)) },
+          ],
         };
       } catch (error) {
         return {
@@ -87,7 +89,9 @@ export function registerEventTools(registerTool: RegisterToolFn) {
           network,
         );
         return {
-          content: [{ type: "text", text: services.helpers.formatJson(result) }],
+          content: [
+            { type: "text", text: services.helpers.formatJson(services.formatEventData(result)) },
+          ],
         };
       } catch (error) {
         return {
@@ -130,7 +134,9 @@ export function registerEventTools(registerTool: RegisterToolFn) {
           network,
         );
         return {
-          content: [{ type: "text", text: services.helpers.formatJson(result) }],
+          content: [
+            { type: "text", text: services.helpers.formatJson(services.formatEventData(result)) },
+          ],
         };
       } catch (error) {
         return {
@@ -166,7 +172,9 @@ export function registerEventTools(registerTool: RegisterToolFn) {
       try {
         const result = await services.getEventsOfLatestBlock({ onlyConfirmed }, network);
         return {
-          content: [{ type: "text", text: services.helpers.formatJson(result) }],
+          content: [
+            { type: "text", text: services.helpers.formatJson(services.formatEventData(result)) },
+          ],
         };
       } catch (error) {
         return {
