@@ -31,6 +31,11 @@ vi.mock("../../src/core/services/index", async () => {
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
     withdrawExpireUnfreeze: vi.fn(),
+    listNodes: vi.fn(),
+    getNodeInfo: vi.fn(),
+    getTransactionListFromPending: vi.fn(),
+    getTransactionFromPending: vi.fn(),
+    getPendingSize: vi.fn(),
     getEventsByTransactionId: vi.fn(),
     getEventsByContractAddress: vi.fn(),
     getEventsByBlockNumber: vi.fn(),
@@ -62,6 +67,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
+    it("should register all 27 TRON tools", () => {
     it("should register all 26 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
@@ -87,6 +93,11 @@ describe("TRON Tools Unit Tests", () => {
         "freeze_balance_v2",
         "unfreeze_balance_v2",
         "withdraw_expire_unfreeze",
+        "list_nodes",
+        "get_node_info",
+        "get_pending_transactions",
+        "get_transaction_from_pending",
+        "get_pending_size",
         "get_events_by_transaction_id",
         "get_events_by_contract_address",
         "get_events_by_block_number",
@@ -156,6 +167,11 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("estimate_energy")).toBe(true);
       expect(registeredTools.has("read_contract")).toBe(true);
       expect(registeredTools.has("multicall")).toBe(true);
+      expect(registeredTools.has("list_nodes")).toBe(true);
+      expect(registeredTools.has("get_node_info")).toBe(true);
+      expect(registeredTools.has("get_pending_transactions")).toBe(true);
+      expect(registeredTools.has("get_transaction_from_pending")).toBe(true);
+      expect(registeredTools.has("get_pending_size")).toBe(true);
       expect(registeredTools.has("get_events_by_transaction_id")).toBe(true);
       expect(registeredTools.has("get_events_by_contract_address")).toBe(true);
       expect(registeredTools.has("get_events_by_block_number")).toBe(true);
@@ -388,6 +404,83 @@ describe("TRON Tools Unit Tests", () => {
     });
   });
 
+  describe("Node Tools", () => {
+    it("list_nodes should return node list", async () => {
+      (services.listNodes as any).mockResolvedValue(["1.2.3.4:18888", "5.6.7.8:18888"]);
+      const result = await registeredTools.get("list_nodes").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.nodeCount).toBe(2);
+      expect(content.nodes).toEqual(["1.2.3.4:18888", "5.6.7.8:18888"]);
+    });
+
+    it("list_nodes should handle errors", async () => {
+      (services.listNodes as any).mockRejectedValue(new Error("Network error"));
+      const result = await registeredTools.get("list_nodes").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error listing nodes");
+    });
+
+    it("get_node_info should return node information", async () => {
+      const mockInfo = { configNodeInfo: {}, machineInfo: {}, activeConnectCount: 5 };
+      (services.getNodeInfo as any).mockResolvedValue(mockInfo);
+      const result = await registeredTools.get("get_node_info").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.activeConnectCount).toBe(5);
+    });
+
+    it("get_node_info should handle errors", async () => {
+      (services.getNodeInfo as any).mockRejectedValue(new Error("Timeout"));
+      const result = await registeredTools.get("get_node_info").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching node info");
+    });
+  });
+
+  describe("Mempool Tools", () => {
+    it("get_pending_transactions should return transaction list", async () => {
+      (services.getTransactionListFromPending as any).mockResolvedValue(["tx1", "tx2"]);
+      const result = await registeredTools.get("get_pending_transactions").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.pendingCount).toBe(2);
+      expect(content.transactionIds).toEqual(["tx1", "tx2"]);
+    });
+
+    it("get_pending_transactions should handle errors", async () => {
+      (services.getTransactionListFromPending as any).mockRejectedValue(new Error("API error"));
+      const result = await registeredTools.get("get_pending_transactions").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching pending transactions");
+    });
+
+    it("get_transaction_from_pending should return transaction details", async () => {
+      const mockTx = { txID: "abc123", raw_data: {} };
+      (services.getTransactionFromPending as any).mockResolvedValue(mockTx);
+      const txId = "a".repeat(64);
+      const result = await registeredTools.get("get_transaction_from_pending").handler({ txId });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txID).toBe("abc123");
+    });
+
+    it("get_transaction_from_pending should handle errors", async () => {
+      (services.getTransactionFromPending as any).mockRejectedValue(new Error("Not found"));
+      const txId = "b".repeat(64);
+      const result = await registeredTools.get("get_transaction_from_pending").handler({ txId });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching transaction from pending");
+    });
+
+    it("get_pending_size should return pending pool size", async () => {
+      (services.getPendingSize as any).mockResolvedValue(42);
+      const result = await registeredTools.get("get_pending_size").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.pendingTransactionSize).toBe(42);
+    });
+
+    it("get_pending_size should handle errors", async () => {
+      (services.getPendingSize as any).mockRejectedValue(new Error("Connection refused"));
+      const result = await registeredTools.get("get_pending_size").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching pending size");
   describe("Event Tools", () => {
     // Mock raw API response structure (before formatEventData transforms it)
     const mockEventResponse = {
