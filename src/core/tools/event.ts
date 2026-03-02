@@ -110,7 +110,9 @@ export function registerEventTools(registerTool: RegisterToolFn) {
   registerTool(
     "get_events_by_block_number",
     {
-      description: "Get all events emitted in a specific block.",
+      description:
+        "Get events emitted in a specific block. Supports pagination via limit and fingerprint. " +
+        "Preferred over get_events_of_latest_block when you need precise block targeting or full event retrieval.",
       inputSchema: {
         blockNumber: z.number().describe("The block number to query events for"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed events"),
@@ -155,7 +157,10 @@ export function registerEventTools(registerTool: RegisterToolFn) {
   registerTool(
     "get_events_of_latest_block",
     {
-      description: "Get all events emitted in the latest block.",
+      description:
+        "Get events from the most recent block that contains events (skips empty blocks). " +
+        "Results may be limited by the API default page size and subject to event indexing lag. " +
+        "For precise control, use get_events_by_block_number with a specific block number and limit/fingerprint pagination.",
       inputSchema: {
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed events"),
         network: z.string().optional().describe("Network name. Defaults to mainnet."),
