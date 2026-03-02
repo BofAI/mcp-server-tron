@@ -22,6 +22,7 @@ This document provides essential information for AI agents working on this repos
 
 - **Start (Stdio)**: `npm start` (uses `tsx` to run `src/index.ts`)
 - **Start (HTTP)**: `npm run start:http`
+- **Read-only mode**: Add `--readonly` or `-r` to disable write tools (e.g., `npm start -- --readonly`)
 - **Inspect**: `npm run inspect` (launches MCP Inspector)
 
 ---
@@ -46,7 +47,7 @@ This document provides essential information for AI agents working on this repos
 ### 🏗 Architecture
 
 - **src/core/services**: Contains the business logic and TronWeb integrations.
-- **src/core/tools.ts**: MCP tool definitions and schema validation using `zod`.
+- **src/core/tools/**: MCP tool definitions split by category (wallet, network, address, block, balance, transaction, contract, transfer, staking, account), with schema validation using `zod`.
 - **src/core/prompts.ts**: MCP prompt definitions.
 - **src/server**: Protocol-specific server implementations (Stdio/HTTP).
 
@@ -83,7 +84,10 @@ This document provides essential information for AI agents working on this repos
 ## 🤖 MCP Specifics
 
 - **Tools**: Every tool must have a clear `description` and `inputSchema`.
-- **Annotations**: Use `annotations` (`title`, `readOnlyHint`, etc.) to help LLMs understand tool impact.
+- **Conditional Registration**: Tools are conditionally registered based on whether a wallet is configured.
+  - "Write" tools (state-changing) are automatically identified by `readOnlyHint: false`.
+  - Special "Read" tools that depend on wallet configuration (e.g., `get_wallet_address`) must specify `requiresWallet: true` in their annotations.
+- **Annotations**: Use `annotations` (`title`, `readOnlyHint`, `requiresWallet`, etc.) to help LLMs understand tool impact and to control registration logic.
 - **Serialization**: Use the `utils.formatJson` helper to handle `BigInt` when returning tool results.
 
 ---
@@ -93,7 +97,7 @@ This document provides essential information for AI agents working on this repos
 ### Adding a New Tool
 
 1.  **Define Logic**: Add a new service in `src/core/services/` if it involves complex blockchain interaction.
-2.  **Register Tool**: Open `src/core/tools.ts` and use `server.registerTool`.
+2.  **Register Tool**: Add to the appropriate category file in `src/core/tools/` (or create a new one) using the `registerTool` helper.
 3.  **Schema**: Define the input schema using `zod`.
 4.  **Error Handling**: Wrap the implementation in a `try-catch` block.
 5.  **Documentation**: Add a clear description and title in `annotations`.
@@ -118,6 +122,6 @@ The server supports multiple networks (`mainnet`, `nile`, `shasta`).
 
 ## 📝 Additional Notes
 
-- Follow the existing pattern for registering tools in `src/core/tools.ts`.
+- Follow the existing pattern for registering tools in `src/core/tools/`.
 - When adding new network support, update `src/core/chains.ts`.
 - Keep documentation in `README.md` and `AGENTS.md` up to date with new features.

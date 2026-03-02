@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerTRONTools } from "../../src/core/tools";
+import { registerTRONTools } from "../../src/core/tools/index";
 import * as services from "../../src/core/services/index";
 
 // Mock all services
@@ -10,6 +10,7 @@ vi.mock("../../src/core/services/index", async () => {
     ...(actual as any),
     getWalletAddressFromKey: vi.fn(),
     getConfiguredPrivateKey: vi.fn(),
+    isWalletConfigured: vi.fn(),
     getChainId: vi.fn(),
     getBlockNumber: vi.fn(),
     getTRXBalance: vi.fn(),
@@ -30,6 +31,26 @@ vi.mock("../../src/core/services/index", async () => {
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
     withdrawExpireUnfreeze: vi.fn(),
+    listNodes: vi.fn(),
+    getNodeInfo: vi.fn(),
+    getTransactionListFromPending: vi.fn(),
+    getTransactionFromPending: vi.fn(),
+    getPendingSize: vi.fn(),
+    getEventsByTransactionId: vi.fn(),
+    getEventsByContractAddress: vi.fn(),
+    getEventsByBlockNumber: vi.fn(),
+    getEventsOfLatestBlock: vi.fn(),
+    getAccount: vi.fn(),
+    getAccountBalance: vi.fn(),
+    generateAccount: vi.fn(),
+    validateAddress: vi.fn(),
+    getAccountNet: vi.fn(),
+    getAccountResource: vi.fn(),
+    getDelegatedResource: vi.fn(),
+    getDelegatedResourceIndex: vi.fn(),
+    createAccount: vi.fn(),
+    updateAccount: vi.fn(),
+    updateAccountPermissions: vi.fn(),
   };
 });
 
@@ -51,12 +72,14 @@ describe("TRON Tools Unit Tests", () => {
       return originalRegisterTool(name, schema, handler);
     };
 
+    (services.isWalletConfigured as any).mockReturnValue(true);
     registerTRONTools(server);
     vi.clearAllMocks();
   });
 
   describe("Registration", () => {
-    it("should register all 22 TRON tools", () => {
+    it("should register all 42 TRON tools", () => {
+      // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
         "get_chain_info",
@@ -80,10 +103,114 @@ describe("TRON Tools Unit Tests", () => {
         "freeze_balance_v2",
         "unfreeze_balance_v2",
         "withdraw_expire_unfreeze",
+        "list_nodes",
+        "get_node_info",
+        "get_pending_transactions",
+        "get_transaction_from_pending",
+        "get_pending_size",
+        "get_events_by_transaction_id",
+        "get_events_by_contract_address",
+        "get_events_by_block_number",
+        "get_events_of_latest_block",
+        "get_account",
+        "get_account_balance",
+        "generate_account",
+        "validate_address",
+        "get_account_net",
+        "get_account_resource",
+        "get_delegated_resource",
+        "get_delegated_resource_index",
+        "create_account",
+        "update_account",
+        "account_permission_update",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
       });
+    });
+
+    it("should NOT register write tools when readOnly option is true", () => {
+      registeredTools = new Map();
+      const localServer = new McpServer({ name: "test", version: "1" });
+      const originalRegisterTool = localServer.registerTool.bind(localServer);
+      localServer.registerTool = (name: string, schema: any, handler: any) => {
+        registeredTools.set(name, { schema, handler });
+        return originalRegisterTool(name, schema, handler);
+      };
+
+      (services.isWalletConfigured as any).mockReturnValue(true);
+      registerTRONTools(localServer, { readOnly: true });
+
+      // Write tools should NOT be registered
+      expect(registeredTools.has("transfer_trx")).toBe(false);
+      expect(registeredTools.has("write_contract")).toBe(false);
+      expect(registeredTools.has("create_account")).toBe(false);
+      expect(registeredTools.has("update_account")).toBe(false);
+      expect(registeredTools.has("account_permission_update")).toBe(false);
+
+      // get_wallet_address IS a read tool (readOnlyHint: true)
+      // Since isWalletConfigured is mocked to true, it SHOULD be registered
+      // even in readonly mode because it doesn't perform write operations.
+      expect(registeredTools.has("get_wallet_address")).toBe(true);
+
+      // Read tools should STILL be registered
+      expect(registeredTools.has("get_balance")).toBe(true);
+      expect(registeredTools.has("get_chain_info")).toBe(true);
+    });
+
+    it("should NOT register wallet-dependent or write tools when no wallet is configured", () => {
+      registeredTools = new Map();
+      const localServer = new McpServer({ name: "test", version: "1" });
+      const originalRegisterTool = localServer.registerTool.bind(localServer);
+      localServer.registerTool = (name: string, schema: any, handler: any) => {
+        registeredTools.set(name, { schema, handler });
+        return originalRegisterTool(name, schema, handler);
+      };
+
+      (services.isWalletConfigured as any).mockReturnValue(false);
+      registerTRONTools(localServer);
+
+      // Write tools should NOT be registered (no wallet)
+      expect(registeredTools.has("transfer_trx")).toBe(false);
+      expect(registeredTools.has("transfer_trc20")).toBe(false);
+      expect(registeredTools.has("write_contract")).toBe(false);
+      expect(registeredTools.has("deploy_contract")).toBe(false);
+      expect(registeredTools.has("sign_message")).toBe(false);
+      expect(registeredTools.has("freeze_balance_v2")).toBe(false);
+      expect(registeredTools.has("create_account")).toBe(false);
+      expect(registeredTools.has("update_account")).toBe(false);
+      expect(registeredTools.has("account_permission_update")).toBe(false);
+
+      // get_wallet_address has requiresWallet: true, should be hidden
+      expect(registeredTools.has("get_wallet_address")).toBe(false);
+
+      // Pure read tools should STILL be registered
+      expect(registeredTools.has("get_balance")).toBe(true);
+      expect(registeredTools.has("get_chain_info")).toBe(true);
+      expect(registeredTools.has("get_supported_networks")).toBe(true);
+      expect(registeredTools.has("convert_address")).toBe(true);
+      expect(registeredTools.has("get_block")).toBe(true);
+      expect(registeredTools.has("get_latest_block")).toBe(true);
+      expect(registeredTools.has("estimate_energy")).toBe(true);
+      expect(registeredTools.has("read_contract")).toBe(true);
+      expect(registeredTools.has("multicall")).toBe(true);
+      expect(registeredTools.has("list_nodes")).toBe(true);
+      expect(registeredTools.has("get_node_info")).toBe(true);
+      expect(registeredTools.has("get_pending_transactions")).toBe(true);
+      expect(registeredTools.has("get_transaction_from_pending")).toBe(true);
+      expect(registeredTools.has("get_pending_size")).toBe(true);
+      expect(registeredTools.has("get_events_by_transaction_id")).toBe(true);
+      expect(registeredTools.has("get_events_by_contract_address")).toBe(true);
+      expect(registeredTools.has("get_events_by_block_number")).toBe(true);
+      expect(registeredTools.has("get_events_of_latest_block")).toBe(true);
+      expect(registeredTools.has("get_account")).toBe(true);
+      expect(registeredTools.has("get_account_balance")).toBe(true);
+      expect(registeredTools.has("generate_account")).toBe(true);
+      expect(registeredTools.has("validate_address")).toBe(true);
+      expect(registeredTools.has("get_account_net")).toBe(true);
+      expect(registeredTools.has("get_account_resource")).toBe(true);
+      expect(registeredTools.has("get_delegated_resource")).toBe(true);
+      expect(registeredTools.has("get_delegated_resource_index")).toBe(true);
     });
   });
 
@@ -309,6 +436,365 @@ describe("TRON Tools Unit Tests", () => {
       expect(services.withdrawExpireUnfreeze).toHaveBeenCalledWith("key", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx789");
+    });
+  });
+
+  describe("Node Tools", () => {
+    it("list_nodes should return node list", async () => {
+      (services.listNodes as any).mockResolvedValue(["1.2.3.4:18888", "5.6.7.8:18888"]);
+      const result = await registeredTools.get("list_nodes").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.nodeCount).toBe(2);
+      expect(content.nodes).toEqual(["1.2.3.4:18888", "5.6.7.8:18888"]);
+    });
+
+    it("list_nodes should handle errors", async () => {
+      (services.listNodes as any).mockRejectedValue(new Error("Network error"));
+      const result = await registeredTools.get("list_nodes").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error listing nodes");
+    });
+
+    it("get_node_info should return node information", async () => {
+      const mockInfo = { configNodeInfo: {}, machineInfo: {}, activeConnectCount: 5 };
+      (services.getNodeInfo as any).mockResolvedValue(mockInfo);
+      const result = await registeredTools.get("get_node_info").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.activeConnectCount).toBe(5);
+    });
+
+    it("get_node_info should handle errors", async () => {
+      (services.getNodeInfo as any).mockRejectedValue(new Error("Timeout"));
+      const result = await registeredTools.get("get_node_info").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching node info");
+    });
+  });
+
+  describe("Mempool Tools", () => {
+    it("get_pending_transactions should return transaction list", async () => {
+      (services.getTransactionListFromPending as any).mockResolvedValue(["tx1", "tx2"]);
+      const result = await registeredTools.get("get_pending_transactions").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.pendingCount).toBe(2);
+      expect(content.transactionIds).toEqual(["tx1", "tx2"]);
+    });
+
+    it("get_pending_transactions should handle errors", async () => {
+      (services.getTransactionListFromPending as any).mockRejectedValue(new Error("API error"));
+      const result = await registeredTools.get("get_pending_transactions").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching pending transactions");
+    });
+
+    it("get_transaction_from_pending should return transaction details", async () => {
+      const mockTx = { txID: "abc123", raw_data: {} };
+      (services.getTransactionFromPending as any).mockResolvedValue(mockTx);
+      const txId = "a".repeat(64);
+      const result = await registeredTools.get("get_transaction_from_pending").handler({ txId });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txID).toBe("abc123");
+    });
+
+    it("get_transaction_from_pending should handle errors", async () => {
+      (services.getTransactionFromPending as any).mockRejectedValue(new Error("Not found"));
+      const txId = "b".repeat(64);
+      const result = await registeredTools.get("get_transaction_from_pending").handler({ txId });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching transaction from pending");
+    });
+
+    it("get_pending_size should return pending pool size", async () => {
+      (services.getPendingSize as any).mockResolvedValue(42);
+      const result = await registeredTools.get("get_pending_size").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.pendingTransactionSize).toBe(42);
+    });
+
+    it("get_pending_size should handle errors", async () => {
+      (services.getPendingSize as any).mockRejectedValue(new Error("Connection refused"));
+      const result = await registeredTools.get("get_pending_size").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching pending size");
+    });
+  });
+
+  describe("Event Tools", () => {
+    // Mock raw API response structure (before formatEventData transforms it)
+    const mockEventResponse = {
+      success: true,
+      data: [
+        {
+          event_name: "Transfer",
+          event: "Transfer(address,address,uint256)",
+          transaction_id: "tx1",
+          block_number: 100,
+          block_timestamp: 1700000000000,
+          contract_address: "TContractAddr",
+          caller_contract_address: "",
+          _unconfirmed: false,
+          result: {
+            from: "0x1234567890abcdef1234567890abcdef12345678",
+            to: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            value: "1000000",
+          },
+          result_type: { from: "address", to: "address", value: "uint256" },
+        },
+      ],
+      meta: { page_size: 1, fingerprint: "page2token" },
+    };
+
+    it("get_events_by_transaction_id should return formatted events", async () => {
+      (services.getEventsByTransactionId as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_by_transaction_id").handler({
+        transactionId: "abc123",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].eventName).toBe("Transfer");
+      expect(content.events[0].transactionId).toBe("tx1");
+      expect(content.events[0].confirmed).toBe(true);
+      expect(content.fingerprint).toBe("page2token");
+    });
+
+    it("get_events_by_transaction_id should handle errors", async () => {
+      (services.getEventsByTransactionId as any).mockRejectedValue(new Error("Not found"));
+      const result = await registeredTools.get("get_events_by_transaction_id").handler({
+        transactionId: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events by transaction");
+    });
+
+    it("get_events_by_contract_address should return formatted events", async () => {
+      (services.getEventsByContractAddress as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_by_contract_address").handler({
+        contractAddress: "Taddr",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].eventName).toBe("Transfer");
+    });
+
+    it("get_events_by_contract_address should handle errors", async () => {
+      (services.getEventsByContractAddress as any).mockRejectedValue(new Error("Invalid address"));
+      const result = await registeredTools.get("get_events_by_contract_address").handler({
+        contractAddress: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events by contract");
+    });
+
+    it("get_events_by_block_number should return formatted events", async () => {
+      (services.getEventsByBlockNumber as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_by_block_number").handler({
+        blockNumber: 100,
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].blockNumber).toBe(100);
+    });
+
+    it("get_events_by_block_number should handle errors", async () => {
+      (services.getEventsByBlockNumber as any).mockRejectedValue(new Error("Block not found"));
+      const result = await registeredTools.get("get_events_by_block_number").handler({
+        blockNumber: -1,
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events by block");
+    });
+
+    it("get_events_of_latest_block should return formatted events", async () => {
+      (services.getEventsOfLatestBlock as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_of_latest_block").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].signature).toBe("Transfer(address,address,uint256)");
+    });
+
+    it("get_events_of_latest_block should handle errors", async () => {
+      (services.getEventsOfLatestBlock as any).mockRejectedValue(new Error("Timeout"));
+      const result = await registeredTools.get("get_events_of_latest_block").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events of latest block");
+    });
+  });
+
+  describe("Account Tools", () => {
+    it("get_account should fetch full account info", async () => {
+      (services.getAccount as any).mockResolvedValue({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        balance: 1000000,
+      });
+      const result = await registeredTools.get("get_account").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.network).toBe("nile");
+      expect(content.balance).toBe(1000000);
+    });
+
+    it("get_account_balance should fetch balance at block", async () => {
+      (services.getAccountBalance as any).mockResolvedValue({
+        balance: 500000,
+        block_identifier: { hash: "abc", number: 100 },
+      });
+      const result = await registeredTools.get("get_account_balance").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        blockHash: "abc",
+        blockNumber: 100,
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.balance).toBe(500000);
+    });
+
+    it("generate_account should return new keypair", async () => {
+      (services.generateAccount as any).mockResolvedValue({
+        privateKey: "privkey123",
+        publicKey: "pubkey456",
+        address: { base58: "Taddr", hex: "41addr" },
+      });
+      const result = await registeredTools.get("generate_account").handler({});
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.privateKey).toBe("privkey123");
+      expect(content.publicKey).toBe("pubkey456");
+    });
+
+    it("validate_address should return validation result", async () => {
+      (services.validateAddress as any).mockReturnValue({
+        isValid: true,
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        format: "base58",
+      });
+      const result = await registeredTools.get("validate_address").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.isValid).toBe(true);
+      expect(content.format).toBe("base58");
+    });
+
+    it("get_account_net should fetch bandwidth info", async () => {
+      (services.getAccountNet as any).mockResolvedValue({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        bandwidth: 5000,
+      });
+      const result = await registeredTools.get("get_account_net").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.bandwidth).toBe(5000);
+    });
+
+    it("get_account_resource should fetch resource info", async () => {
+      (services.getAccountResource as any).mockResolvedValue({
+        TotalEnergyLimit: 1000000,
+        TotalNetLimit: 500000,
+      });
+      const result = await registeredTools.get("get_account_resource").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.network).toBe("nile");
+      expect(content.TotalEnergyLimit).toBe(1000000);
+    });
+
+    it("get_delegated_resource should fetch delegation details", async () => {
+      (services.getDelegatedResource as any).mockResolvedValue({
+        delegatedResource: [{ frozen_balance_for_energy: 100 }],
+      });
+      const result = await registeredTools.get("get_delegated_resource").handler({
+        fromAddress: "Tfrom",
+        toAddress: "Tto",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.fromAddress).toBe("Tfrom");
+      expect(content.toAddress).toBe("Tto");
+    });
+
+    it("get_delegated_resource_index should fetch delegation index", async () => {
+      (services.getDelegatedResourceIndex as any).mockResolvedValue({
+        account: "Taddr",
+        toAccounts: ["Tto1"],
+      });
+      const result = await registeredTools.get("get_delegated_resource_index").handler({
+        address: "Taddr",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.address).toBe("Taddr");
+    });
+
+    it("create_account should activate a new address", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.createAccount as any).mockResolvedValue("txhash123");
+      const result = await registeredTools.get("create_account").handler({
+        address: "Tnewaddr",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("txhash123");
+      expect(content.newAccount).toBe("Tnewaddr");
+      expect(content.from).toBe("Tsender");
+    });
+
+    it("update_account should set account name", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.updateAccount as any).mockResolvedValue("txhash456");
+      const result = await registeredTools.get("update_account").handler({
+        accountName: "MyAccount",
+        network: "nile",
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("txhash456");
+      expect(content.accountName).toBe("MyAccount");
+    });
+
+    it("account_permission_update should update permissions", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.updateAccountPermissions as any).mockResolvedValue("txhash789");
+      const result = await registeredTools.get("account_permission_update").handler({
+        ownerPermission: {
+          type: 0,
+          permission_name: "owner",
+          threshold: 1,
+          keys: [{ address: "Tsender", weight: 1 }],
+        },
+        activePermissions: {
+          type: 2,
+          permission_name: "active",
+          threshold: 1,
+          operations: "7fff1fc0033e0000000000000000000000000000000000000000000000000000",
+          keys: [{ address: "Tsender", weight: 1 }],
+        },
+      });
+      expect(result.isError).toBeUndefined();
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("txhash789");
+    });
+
+    it("get_account should handle errors gracefully", async () => {
+      (services.getAccount as any).mockRejectedValue(new Error("Network error"));
+      const result = await registeredTools.get("get_account").handler({
+        address: "Taddr",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Network error");
     });
   });
 });

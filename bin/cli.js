@@ -23,7 +23,7 @@ try {
   require.resolve(scriptPath);
 
   // Execute the server
-  const server = spawn("node", [scriptPath], {
+  const server = spawn("node", [scriptPath, ...args], {
     stdio: "inherit",
     shell: false,
   });

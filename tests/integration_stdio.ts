@@ -6,13 +6,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverPath = join(__dirname, "../src/index.ts");
 
 async function runIntegrationTest() {
-  console.log("🚀 Starting Integration Test via Stdio...");
+  const isReadOnlyMode = process.argv.includes("--readonly") || process.argv.includes("-r");
+  const noKey = process.argv.includes("--no-key");
+  console.log(
+    `🚀 Starting Integration Test via Stdio (Readonly: ${isReadOnlyMode}, NoKey: ${noKey})...`,
+  );
 
-  const serverProcess = spawn("npx", ["tsx", serverPath], {
-    env: {
-      ...process.env,
-      TRON_PRIVATE_KEY: "0000000000000000000000000000000000000000000000000000000000000001", // Dummy key
-    },
+  const spawnArgs = ["tsx", serverPath];
+  if (isReadOnlyMode) {
+    spawnArgs.push("--readonly");
+  }
+
+  const env = { ...process.env };
+  if (noKey) {
+    delete env.TRON_PRIVATE_KEY;
+    delete env.TRON_MNEMONIC;
+  } else {
+    env.TRON_PRIVATE_KEY = "0000000000000000000000000000000000000000000000000000000000000001";
+  }
+
+  const serverProcess = spawn("npx", spawnArgs, {
+    env,
     stdio: ["pipe", "pipe", "inherit"], // Pipe stdin/stdout, inherit stderr
   });
 
@@ -89,8 +103,15 @@ async function runIntegrationTest() {
     const toolNames = toolsRes.result.tools.map((t: any) => t.name);
     console.log(`✅ Found ${toolNames.length} tools:`, toolNames.join(", "));
 
-    if (!toolNames.includes("get_balance") || !toolNames.includes("transfer_trx")) {
-      throw new Error("Missing expected tools!");
+    if (isReadOnlyMode || noKey) {
+      if (toolNames.includes("transfer_trx") || toolNames.includes("write_contract")) {
+        throw new Error(`Write tools found in ${noKey ? "NoKey" : "Readonly"} mode!`);
+      }
+      console.log(`✅ Verified: Write tools are filtered in ${noKey ? "NoKey" : "Readonly"} mode.`);
+    } else {
+      if (!toolNames.includes("get_balance") || !toolNames.includes("transfer_trx")) {
+        throw new Error("Missing expected tools!");
+      }
     }
 
     // 4. Call a Tool (get_supported_networks)

@@ -38,6 +38,7 @@ Key capabilities:
 - **Address Management**: Convert between Hex (0x...) and Base58 (T...) formats.
 - **Wallet Integration**: Support for Private Key and Mnemonic (BIP-39) wallets.
 - **Multi-Network**: Seamless support for Mainnet, Nile, and Shasta.
+- **Dynamic Access Control**: Automatically hides write tools if no wallet is configured or if `--readonly` mode is active.
 
 ## Features
 
@@ -142,6 +143,9 @@ The server runs on port **3001** by default in HTTP mode.
 # Start in stdio mode (for MCP clients like Claude Desktop/Cursor)
 npm start
 
+# Start in readonly mode (disables write tools)
+npm start -- --readonly
+
 # Start in HTTP mode (Server-Sent Events)
 npm run start:http
 ```
@@ -214,6 +218,46 @@ For developers running from the cloned repository.
 }
 ```
 
+**Option C: Official Hosted Server (Remote)**
+Connect to the official hosted server at `https://mcp-server.bankofai.io`. No installation required, readonly mode.
+
+Claude Desktop / Cursor / Claude Code:
+
+```json
+{
+  "mcpServers": {
+    "mcp-server-tron": {
+      "url": "https://mcp-server.bankofai.io/mcp"
+    }
+  }
+}
+```
+
+Google Antigravity:
+
+```json
+{
+  "mcpServers": {
+    "mcp-server-tron": {
+      "serverUrl": "https://mcp-server.bankofai.io/mcp"
+    }
+  }
+}
+```
+
+Opencode:
+
+```json
+{
+  "mcp": {
+    "mcp-server-tron": {
+      "type": "remote",
+      "url": "https://mcp-server.bankofai.io/mcp"
+    }
+  }
+}
+```
+
 **Important**: We recommend omitting the `env` section if you have already set these variables in your system environment. If your MCP client doesn't inherit system variables, use placeholders or ensure the config file is not shared or committed to version control.
 
 ## API Reference
@@ -260,11 +304,37 @@ For developers running from the cloned repository.
 
 #### Smart Contracts
 
-| Tool Name        | Description                                | Key Parameters                                                |
-| :--------------- | :----------------------------------------- | :------------------------------------------------------------ |
-| `read_contract`  | Call read-only (`view`/`pure`) functions.  | `contractAddress`, `functionName`, `args`, `network`          |
-| `multicall`      | Execute multiple read calls in one batch.  | `calls`, `network`                                            |
-| `write_contract` | Execute state-changing contract functions. | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| Tool Name         | Description                                       | Key Parameters                                                |
+| :---------------- | :------------------------------------------------ | :------------------------------------------------------------ |
+| `read_contract`   | Call read-only (`view`/`pure`) functions.          | `contractAddress`, `functionName`, `args`, `network`          |
+| `multicall`       | Execute multiple read calls in one batch.          | `calls`, `network`                                            |
+| `write_contract`  | Execute state-changing contract functions.         | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| `deploy_contract` | Deploy a smart contract with ABI and bytecode.     | `abi`, `bytecode`, `args`, `network`                          |
+| `estimate_energy` | Estimate energy consumption for a contract call.   | `address`, `functionName`, `abi`, `network`                   |
+
+#### Account Management
+
+| Tool Name                       | Description                                                     | Key Parameters                                         |
+| :------------------------------ | :-------------------------------------------------------------- | :----------------------------------------------------- |
+| `get_account`                   | Get full account info (balance, resources, permissions, etc.).   | `address`, `network`                                   |
+| `get_account_balance`           | Get TRX balance at a specific block height.                     | `address`, `blockHash`, `blockNumber`, `network`       |
+| `generate_account`              | Generate a new TRON keypair offline.                            | -                                                      |
+| `validate_address`              | Validate a TRON address and detect format.                      | `address`                                              |
+| `get_account_net`               | Get bandwidth information for an account.                       | `address`, `network`                                   |
+| `get_account_resource`          | Get energy, bandwidth, and delegation details.                  | `address`, `network`                                   |
+| `get_delegated_resource`        | Query delegated resources between two accounts (Stake 2.0).     | `fromAddress`, `toAddress`, `network`                  |
+| `get_delegated_resource_index`  | Query delegation index (who delegated to/from this account).    | `address`, `network`                                   |
+| `create_account`                | Activate a new account on-chain (costs bandwidth).              | `address`, `network`                                   |
+| `update_account`                | Set account name (can only be set once).                        | `accountName`, `network`                               |
+| `account_permission_update`     | Update multi-signature permissions.                             | `ownerPermission`, `activePermissions`, `network`      |
+
+#### Staking (Stake 2.0)
+
+| Tool Name                   | Description                                          | Key Parameters                |
+| :-------------------------- | :--------------------------------------------------- | :---------------------------- |
+| `freeze_balance_v2`         | Freeze TRX to get resources (BANDWIDTH/ENERGY).      | `amount`, `resource`, `network` |
+| `unfreeze_balance_v2`       | Unfreeze TRX to release resources.                   | `amount`, `resource`, `network` |
+| `withdraw_expire_unfreeze`  | Withdraw expired unfrozen balance back to available.  | `network`                     |
 
 #### Signing & Security
 
@@ -293,7 +363,7 @@ mcp-server-tron/
 ├── src/
 │   ├── core/
 │   │   ├── chains.ts           # Network definitions
-│   │   ├── tools.ts            # MCP Tool definitions
+│   │   ├── tools/              # MCP Tool definitions (split by category)
 │   │   ├── prompts.ts          # MCP Prompt definitions
 │   │   └── services/           # Business logic (TronWeb integration)
 │   │       ├── wallet.ts       # Wallet management
