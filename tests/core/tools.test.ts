@@ -36,6 +36,10 @@ vi.mock("../../src/core/services/index", async () => {
     getTransactionListFromPending: vi.fn(),
     getTransactionFromPending: vi.fn(),
     getPendingSize: vi.fn(),
+    getEventsByTransactionId: vi.fn(),
+    getEventsByContractAddress: vi.fn(),
+    getEventsByBlockNumber: vi.fn(),
+    getEventsOfLatestBlock: vi.fn(),
   };
 });
 
@@ -64,6 +68,7 @@ describe("TRON Tools Unit Tests", () => {
 
   describe("Registration", () => {
     it("should register all 27 TRON tools", () => {
+    it("should register all 26 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -93,6 +98,10 @@ describe("TRON Tools Unit Tests", () => {
         "get_pending_transactions",
         "get_transaction_from_pending",
         "get_pending_size",
+        "get_events_by_transaction_id",
+        "get_events_by_contract_address",
+        "get_events_by_block_number",
+        "get_events_of_latest_block",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -163,6 +172,10 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("get_pending_transactions")).toBe(true);
       expect(registeredTools.has("get_transaction_from_pending")).toBe(true);
       expect(registeredTools.has("get_pending_size")).toBe(true);
+      expect(registeredTools.has("get_events_by_transaction_id")).toBe(true);
+      expect(registeredTools.has("get_events_by_contract_address")).toBe(true);
+      expect(registeredTools.has("get_events_by_block_number")).toBe(true);
+      expect(registeredTools.has("get_events_of_latest_block")).toBe(true);
     });
   });
 
@@ -468,6 +481,104 @@ describe("TRON Tools Unit Tests", () => {
       const result = await registeredTools.get("get_pending_size").handler({});
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error fetching pending size");
+  describe("Event Tools", () => {
+    // Mock raw API response structure (before formatEventData transforms it)
+    const mockEventResponse = {
+      success: true,
+      data: [
+        {
+          event_name: "Transfer",
+          event: "Transfer(address,address,uint256)",
+          transaction_id: "tx1",
+          block_number: 100,
+          block_timestamp: 1700000000000,
+          contract_address: "TContractAddr",
+          caller_contract_address: "",
+          _unconfirmed: false,
+          result: {
+            from: "0x1234567890abcdef1234567890abcdef12345678",
+            to: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            value: "1000000",
+          },
+          result_type: { from: "address", to: "address", value: "uint256" },
+        },
+      ],
+      meta: { page_size: 1, fingerprint: "page2token" },
+    };
+
+    it("get_events_by_transaction_id should return formatted events", async () => {
+      (services.getEventsByTransactionId as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_by_transaction_id").handler({
+        transactionId: "abc123",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].eventName).toBe("Transfer");
+      expect(content.events[0].transactionId).toBe("tx1");
+      expect(content.events[0].confirmed).toBe(true);
+      expect(content.fingerprint).toBe("page2token");
+    });
+
+    it("get_events_by_transaction_id should handle errors", async () => {
+      (services.getEventsByTransactionId as any).mockRejectedValue(new Error("Not found"));
+      const result = await registeredTools.get("get_events_by_transaction_id").handler({
+        transactionId: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events by transaction");
+    });
+
+    it("get_events_by_contract_address should return formatted events", async () => {
+      (services.getEventsByContractAddress as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_by_contract_address").handler({
+        contractAddress: "Taddr",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].eventName).toBe("Transfer");
+    });
+
+    it("get_events_by_contract_address should handle errors", async () => {
+      (services.getEventsByContractAddress as any).mockRejectedValue(new Error("Invalid address"));
+      const result = await registeredTools.get("get_events_by_contract_address").handler({
+        contractAddress: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events by contract");
+    });
+
+    it("get_events_by_block_number should return formatted events", async () => {
+      (services.getEventsByBlockNumber as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_by_block_number").handler({
+        blockNumber: 100,
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].blockNumber).toBe(100);
+    });
+
+    it("get_events_by_block_number should handle errors", async () => {
+      (services.getEventsByBlockNumber as any).mockRejectedValue(new Error("Block not found"));
+      const result = await registeredTools.get("get_events_by_block_number").handler({
+        blockNumber: -1,
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events by block");
+    });
+
+    it("get_events_of_latest_block should return formatted events", async () => {
+      (services.getEventsOfLatestBlock as any).mockResolvedValue(mockEventResponse);
+      const result = await registeredTools.get("get_events_of_latest_block").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.totalEvents).toBe(1);
+      expect(content.events[0].signature).toBe("Transfer(address,address,uint256)");
+    });
+
+    it("get_events_of_latest_block should handle errors", async () => {
+      (services.getEventsOfLatestBlock as any).mockRejectedValue(new Error("Timeout"));
+      const result = await registeredTools.get("get_events_of_latest_block").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching events of latest block");
     });
   });
 });
