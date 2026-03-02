@@ -10,6 +10,8 @@ export * from "./address.js";
 export * from "./wallet.js";
 export * from "./multicall-abi.js";
 export * from "./staking.js";
+export * from "./query.js";
+export * from "./broadcast.js";
 export * from "./utils.js"; // Export utils as top level as well
 
 // Add a helper object for easier access to everything
@@ -24,6 +26,8 @@ import * as transfer from "./transfer.js";
 import * as utils from "./utils.js";
 import * as address from "./address.js";
 import * as staking from "./staking.js";
+import * as query from "./query.js";
+import * as broadcast from "./broadcast.js";
 
 // Re-export specific utils function as 'helpers' for backward compatibility with tools code
 export const helpers = {
@@ -37,6 +41,8 @@ export const helpers = {
   ...transfer,
   ...address,
   ...staking,
+  ...query,
+  ...broadcast,
   ...utils,
   // Specifically map formatJson from utils to helpers root as tools expect it there
   formatJson: utils.utils.formatJson,
