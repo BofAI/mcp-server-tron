@@ -31,6 +31,7 @@ vi.mock("../../src/core/services/index", async () => {
     getContractInfo: vi.fn(),
     updateSetting: vi.fn(),
     updateEnergyLimit: vi.fn(),
+    clearABI: vi.fn(),
     estimateEnergy: vi.fn(),
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
@@ -65,7 +66,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 29 TRON tools", () => {
+    it("should register all 30 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -84,6 +85,7 @@ describe("TRON Tools Unit Tests", () => {
         "get_contract_info",
         "update_contract_setting",
         "update_energy_limit",
+        "clear_abi",
         "multicall",
         "write_contract",
         "transfer_trx",
@@ -388,6 +390,22 @@ describe("TRON Tools Unit Tests", () => {
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx_energy");
       expect(content.originEnergyLimit).toBe(10000000);
+    });
+
+    it("clear_abi should call clearABI service", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.clearABI as any).mockResolvedValue("tx_clear");
+
+      const result = await registeredTools.get("clear_abi").handler({
+        contractAddress: "Tcontract",
+        network: "nile",
+      });
+
+      expect(services.clearABI).toHaveBeenCalledWith("key", "Tcontract", "nile");
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("tx_clear");
+      expect(content.contractAddress).toBe("Tcontract");
     });
 
     it("estimate_energy should call estimateEnergy service", async () => {

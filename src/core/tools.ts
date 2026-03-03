@@ -1156,6 +1156,64 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   );
 
   registerTool(
+    "clear_abi",
+    {
+      description:
+        "Clear the on-chain ABI metadata of a contract (ClearABIContract). Requires the contract creator's wallet.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address whose ABI will be cleared"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Clear Contract ABI",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, network = "mainnet" }) => {
+      try {
+        const privateKey = getConfiguredPrivateKey();
+        const senderAddress = getWalletAddressFromKey();
+        const txHash = await services.clearABI(privateKey, contractAddress, network);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  contractAddress,
+                  from: senderAddress,
+                  txHash,
+                  message:
+                    "Contract ABI cleared on-chain. This removes ABI metadata from the contract.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error clearing contract ABI: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
     "estimate_energy",
     {
       description: "Estimate energy consumption for a smart contract call (simulation).",

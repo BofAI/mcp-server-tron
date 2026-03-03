@@ -206,6 +206,32 @@ export async function updateEnergyLimit(
 }
 
 /**
+ * Clear the ABI of a contract on-chain.
+ * This removes the ABI metadata associated with the contract (ClearABIContract).
+ */
+export async function clearABI(
+  privateKey: string,
+  contractAddress: string,
+  network = "mainnet",
+) {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const tx = await tronWeb.transactionBuilder.clearABI(contractAddress);
+    const signedTx = await tronWeb.trx.sign(tx, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`ClearABI failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to clear ABI: ${error.message}`);
+  }
+}
+
+/**
  * Parse ABI (helper to ensure correct format for TronWeb if needed)
  */
 export function parseABI(abiJson: string | any[]): any[] {
