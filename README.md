@@ -277,6 +277,9 @@ Opencode:
 | :----------------------- | :-------------------------------------- | :------------- |
 | `get_chain_info`         | Get current block and chain ID.         | `network`      |
 | `get_chain_parameters`   | Get current Energy and Bandwidth costs. | `network`      |
+| `get_energy_prices`      | Query historical energy unit price.     | `network`      |
+| `get_bandwidth_prices`   | Query historical bandwidth unit price.  | `network`      |
+| `get_burn_trx`           | Query total TRX burned from fees.       | `network`      |
 | `get_supported_networks` | List available networks.                | -              |
 
 #### Blocks & Transactions
@@ -287,6 +290,24 @@ Opencode:
 | `get_latest_block`     | Get the latest block.                      | `network`                    |
 | `get_transaction`      | Get transaction details by hash.           | `txHash`, `network`          |
 | `get_transaction_info` | Get receipt/info including resource usage. | `txHash`, `network`          |
+| `get_block_by_num`     | Query block by block height.               | `num`, `network`             |
+| `get_block_by_id`      | Query block by block ID (hash).            | `value`, `network`           |
+| `get_block_by_latest_num` | Get latest N blocks (solidified).       | `num`, `network`             |
+| `get_block_by_limit_next`  | Get blocks in range [startNum, endNum). | `startNum`, `endNum`, `network` |
+| `get_now_block`        | Get the current latest block info.         | `network`                    |
+| `get_transaction_by_id` | Query transaction status/content by txID. | `value`, `network`           |
+| `get_transaction_info_by_id` | Query transaction receipt by txID.   | `value`, `network`           |
+| `get_transaction_info_by_block_num` | Get receipts for all txs in a block. | `num`, `network`     |
+| `get_approved_list`    | Query the list of accounts that signed a transaction. | `transaction`, `network` |
+| `get_block_balance`    | Get all balance change operations in a block. | `hash`, `number`, `network` |
+
+#### Broadcast & Transaction Building (Write)
+
+| Tool Name               | Description                                                        | Key Parameters                      |
+| :---------------------- | :----------------------------------------------------------------- | :---------------------------------- |
+| `create_transaction`    | Create an unsigned TRX transfer transaction.                       | `ownerAddress`, `toAddress`, `amount`, `network` |
+| `broadcast_transaction` | Broadcast a signed transaction JSON object to the TRON network.     | `transaction`, `network`           |
+| `broadcast_hex`         | Broadcast a signed protobuf-encoded transaction hex string.         | `transaction`, `network`           |
 
 #### Balances
 
@@ -304,11 +325,37 @@ Opencode:
 
 #### Smart Contracts
 
-| Tool Name        | Description                                | Key Parameters                                                |
-| :--------------- | :----------------------------------------- | :------------------------------------------------------------ |
-| `read_contract`  | Call read-only (`view`/`pure`) functions.  | `contractAddress`, `functionName`, `args`, `network`          |
-| `multicall`      | Execute multiple read calls in one batch.  | `calls`, `network`                                            |
-| `write_contract` | Execute state-changing contract functions. | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| Tool Name         | Description                                       | Key Parameters                                                |
+| :---------------- | :------------------------------------------------ | :------------------------------------------------------------ |
+| `read_contract`   | Call read-only (`view`/`pure`) functions.          | `contractAddress`, `functionName`, `args`, `network`          |
+| `multicall`       | Execute multiple read calls in one batch.          | `calls`, `network`                                            |
+| `write_contract`  | Execute state-changing contract functions.         | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| `deploy_contract` | Deploy a smart contract with ABI and bytecode.     | `abi`, `bytecode`, `args`, `network`                          |
+| `estimate_energy` | Estimate energy consumption for a contract call.   | `address`, `functionName`, `abi`, `network`                   |
+
+#### Account Management
+
+| Tool Name                       | Description                                                     | Key Parameters                                         |
+| :------------------------------ | :-------------------------------------------------------------- | :----------------------------------------------------- |
+| `get_account`                   | Get full account info (balance, resources, permissions, etc.).   | `address`, `network`                                   |
+| `get_account_balance`           | Get TRX balance at a specific block height.                     | `address`, `blockHash`, `blockNumber`, `network`       |
+| `generate_account`              | Generate a new TRON keypair offline.                            | -                                                      |
+| `validate_address`              | Validate a TRON address and detect format.                      | `address`                                              |
+| `get_account_net`               | Get bandwidth information for an account.                       | `address`, `network`                                   |
+| `get_account_resource`          | Get energy, bandwidth, and delegation details.                  | `address`, `network`                                   |
+| `get_delegated_resource`        | Query delegated resources between two accounts (Stake 2.0).     | `fromAddress`, `toAddress`, `network`                  |
+| `get_delegated_resource_index`  | Query delegation index (who delegated to/from this account).    | `address`, `network`                                   |
+| `create_account`                | Activate a new account on-chain (costs bandwidth).              | `address`, `network`                                   |
+| `update_account`                | Set account name (can only be set once).                        | `accountName`, `network`                               |
+| `account_permission_update`     | Update multi-signature permissions.                             | `ownerPermission`, `activePermissions`, `network`      |
+
+#### Staking (Stake 2.0)
+
+| Tool Name                   | Description                                          | Key Parameters                |
+| :-------------------------- | :--------------------------------------------------- | :---------------------------- |
+| `freeze_balance_v2`         | Freeze TRX to get resources (BANDWIDTH/ENERGY).      | `amount`, `resource`, `network` |
+| `unfreeze_balance_v2`       | Unfreeze TRX to release resources.                   | `amount`, `resource`, `network` |
+| `withdraw_expire_unfreeze`  | Withdraw expired unfrozen balance back to available.  | `network`                     |
 
 #### Signing & Security
 
@@ -337,7 +384,7 @@ mcp-server-tron/
 ├── src/
 │   ├── core/
 │   │   ├── chains.ts           # Network definitions
-│   │   ├── tools.ts            # MCP Tool definitions
+│   │   ├── tools/              # MCP Tool definitions (split by category)
 │   │   ├── prompts.ts          # MCP Prompt definitions
 │   │   └── services/           # Business logic (TronWeb integration)
 │   │       ├── wallet.ts       # Wallet management

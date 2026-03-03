@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerTRONResources } from "../core/resources.js";
-import { registerTRONTools } from "../core/tools.js";
+import { registerTRONTools } from "../core/tools/index.js";
 import { registerTRONPrompts } from "../core/prompts.js";
 import { getSupportedNetworks } from "../core/chains.js";
 
