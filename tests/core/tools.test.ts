@@ -41,6 +41,7 @@ vi.mock("../../src/core/services/index", async () => {
     cancelAllUnfreezeV2: vi.fn(),
     getAvailableUnfreezeCount: vi.fn(),
     getCanWithdrawUnfreezeAmount: vi.fn(),
+    getCanDelegatedMaxSize: vi.fn(),
   };
 });
 
@@ -68,7 +69,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 32 TRON tools", () => {
+    it("should register all 33 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -103,6 +104,7 @@ describe("TRON Tools Unit Tests", () => {
         "cancel_all_unfreeze_v2",
         "get_available_unfreeze_count",
         "get_can_withdraw_unfreeze_amount",
+        "get_can_delegated_max_size",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -593,6 +595,31 @@ describe("TRON Tools Unit Tests", () => {
       const content = JSON.parse(result.content[0].text);
       expect(content.amountSun).toBe("1000000");
       expect(content.amountTrx).toBeDefined();
+    });
+
+    it("get_can_delegated_max_size should call getCanDelegatedMaxSize service", async () => {
+      (services.getCanDelegatedMaxSize as any).mockResolvedValue({
+        address: "Taddress",
+        resource: "ENERGY",
+        maxSizeSun: 2000000n,
+      });
+
+      const result = await registeredTools.get("get_can_delegated_max_size").handler({
+        address: "Taddress",
+        resource: "ENERGY",
+        network: "nile",
+      });
+
+      expect(services.getCanDelegatedMaxSize).toHaveBeenCalledWith(
+        "Taddress",
+        "ENERGY",
+        "nile",
+      );
+
+      const content = JSON.parse(result.content[0].text);
+      expect(content.address).toBe("Taddress");
+      expect(content.resource).toBe("ENERGY");
+      expect(content.maxSizeSun).toBe("2000000");
     });
   });
 });

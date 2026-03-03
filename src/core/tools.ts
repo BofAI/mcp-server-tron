@@ -1928,6 +1928,69 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     },
   );
 
+  registerTool(
+    "get_can_delegated_max_size",
+    {
+      description:
+        "Get the maximum amount of TRX (in Sun) that an address can currently delegate as resources (BANDWIDTH or ENERGY) under Stake 2.0.",
+      inputSchema: {
+        address: z.string().describe("Wallet address (Base58 or hex)"),
+        resource: z
+          .enum(["BANDWIDTH", "ENERGY"])
+          .describe("Resource type to query (BANDWIDTH or ENERGY)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Can Delegated Max Size",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ address, resource, network = "mainnet" }) => {
+      try {
+        const result = await services.getCanDelegatedMaxSize(
+          address,
+          resource as "BANDWIDTH" | "ENERGY",
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  address: result.address,
+                  resource: result.resource,
+                  maxSizeSun: result.maxSizeSun.toString(),
+                  message:
+                    "This is the maximum amount (in Sun) that can currently be delegated as the specified resource.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting can delegated max size: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================
