@@ -1,6 +1,6 @@
-import { getTronWeb } from "./clients.js";
 import { toBase58Address } from "./address.js";
 import { utils } from "./utils.js";
+import { tronGridGet, type TronGridListResponse } from "./trongrid-client.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,30 +67,6 @@ export interface NormalizedBalance {
 }
 
 // ---------------------------------------------------------------------------
-// TronGrid GET helper
-// ---------------------------------------------------------------------------
-
-/**
- * Perform a GET request against TronGrid v1 API via the cached TronWeb fullNode.
- * Undefined params are silently filtered before being serialised as query-string.
- */
-async function tronGridGet<T = unknown>(
-  network: string,
-  path: string,
-  params: Record<string, unknown> = {},
-): Promise<T> {
-  const tronWeb = getTronWeb(network);
-  // Filter out undefined values so they don't appear as "undefined" in the query string
-  const cleanParams: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) {
-      cleanParams[key] = value;
-    }
-  }
-  return tronWeb.fullNode.request(path, cleanParams, "get") as Promise<T>;
-}
-
-// ---------------------------------------------------------------------------
 // Formatters
 // ---------------------------------------------------------------------------
 
@@ -105,7 +81,14 @@ function hexToUtf8(hex: string): string {
 
 function safeDivide(sun: number | string | undefined, decimals: number): string {
   if (sun === undefined || sun === null) return "0";
-  return (Number(sun) / Math.pow(10, decimals)).toString();
+  if (decimals === 0) return String(sun);
+  const raw = String(sun).replace(/^-/, "");
+  const negative = String(sun).startsWith("-");
+  const padded = raw.padStart(decimals + 1, "0");
+  const intPart = padded.slice(0, padded.length - decimals);
+  const fracPart = padded.slice(padded.length - decimals).replace(/0+$/, "");
+  const result = fracPart ? `${intPart}.${fracPart}` : intPart;
+  return negative ? `-${result}` : result;
 }
 
 /**
@@ -127,8 +110,8 @@ export function normalizeKeyValuePairs(
     }
     // Already normalised or unexpected shape – pass through
     return {
-      address: String((item as any).address ?? ""),
-      balance: String((item as any).balance ?? "0"),
+      address: String(item.address ?? ""),
+      balance: String(item.balance ?? "0"),
     };
   });
 }
@@ -158,7 +141,7 @@ export function formatAccountInfo(raw: any): FormattedAccountInfo {
  */
 export function formatTransactions(raw: any): {
   transactions: FormattedTransaction[];
-  total: number;
+  count: number;
   fingerprint?: string;
 } {
   const data: any[] = raw.data ?? [];
@@ -189,7 +172,7 @@ export function formatTransactions(raw: any): {
 
   return {
     transactions,
-    total: transactions.length,
+    count: transactions.length,
     ...(raw.meta?.fingerprint ? { fingerprint: raw.meta.fingerprint } : {}),
   };
 }
@@ -199,7 +182,7 @@ export function formatTransactions(raw: any): {
  */
 export function formatTrc20Transactions(raw: any): {
   transactions: FormattedTrc20Transaction[];
-  total: number;
+  count: number;
   fingerprint?: string;
 } {
   const data: any[] = raw.data ?? [];
@@ -227,7 +210,7 @@ export function formatTrc20Transactions(raw: any): {
 
   return {
     transactions,
-    total: transactions.length,
+    count: transactions.length,
     ...(raw.meta?.fingerprint ? { fingerprint: raw.meta.fingerprint } : {}),
   };
 }
@@ -238,7 +221,7 @@ export function formatTrc20Transactions(raw: any): {
  */
 export function formatInternalTransactions(raw: any): {
   transactions: FormattedInternalTransaction[];
-  total: number;
+  count: number;
   fingerprint?: string;
 } {
   const data: any[] = raw.data ?? [];
@@ -258,7 +241,7 @@ export function formatInternalTransactions(raw: any): {
 
   return {
     transactions,
-    total: transactions.length,
+    count: transactions.length,
     ...(raw.meta?.fingerprint ? { fingerprint: raw.meta.fingerprint } : {}),
   };
 }
@@ -365,11 +348,13 @@ export async function getAccountTrc20Balances(
   options: { onlyConfirmed?: boolean } = {},
   network = "mainnet",
 ) {
-  const raw = await tronGridGet(network, `/v1/accounts/${address}/trc20/balance`, {
-    only_confirmed: options.onlyConfirmed,
-  });
+  const raw = await tronGridGet<TronGridListResponse>(
+    network,
+    `/v1/accounts/${address}/trc20/balance`,
+    { only_confirmed: options.onlyConfirmed },
+  );
   return {
-    balances: normalizeKeyValuePairs((raw as any).data ?? []),
-    total: ((raw as any).data ?? []).length,
+    balances: normalizeKeyValuePairs(raw.data ?? []),
+    count: (raw.data ?? []).length,
   };
 }

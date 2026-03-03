@@ -15,7 +15,11 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("Contract address (base58 T-address or hex 41-prefixed)"),
-        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        limit: z
+          .number()
+          .max(200)
+          .optional()
+          .describe("Max transactions per page (default 20, max 200)"),
         fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
@@ -28,7 +32,7 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
         title: "Get Contract Transactions",
         readOnlyHint: true,
         destructiveHint: false,
-        idempotentHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
     },
@@ -85,7 +89,11 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("Contract address (base58 T-address or hex 41-prefixed)"),
-        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        limit: z
+          .number()
+          .max(200)
+          .optional()
+          .describe("Max transactions per page (default 20, max 200)"),
         fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
@@ -98,7 +106,7 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
         title: "Get Contract Internal Transactions",
         readOnlyHint: true,
         destructiveHint: false,
-        idempotentHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
     },
@@ -155,7 +163,11 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("TRC20 token contract address (base58 T-address or hex 41-prefixed)"),
-        limit: z.number().optional().describe("Max holders per page (default 20, max 200)"),
+        limit: z
+          .number()
+          .max(200)
+          .optional()
+          .describe("Max holders per page (default 20, max 200)"),
         fingerprint: z.string().optional().describe("Pagination token from previous response"),
         orderBy: z.string().optional().describe("Sort field, e.g. 'balance,desc'"),
         network: z.string().optional().describe("Network name. Defaults to mainnet."),
@@ -164,7 +176,7 @@ export function registerContractDataTools(registerTool: RegisterToolFn) {
         title: "Get TRC20 Token Holders",
         readOnlyHint: true,
         destructiveHint: false,
-        idempotentHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
     },

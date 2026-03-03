@@ -634,14 +634,14 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("get_account_transactions should return formatted transactions", async () => {
-      const mockResult = { transactions: [{ txID: "tx1" }], total: 1 };
+      const mockResult = { transactions: [{ txID: "tx1" }], count: 1 };
       (services.getAccountTransactions as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_account_transactions").handler({
         address: "Taddr",
         limit: 10,
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
       expect(content.transactions[0].txID).toBe("tx1");
     });
 
@@ -655,13 +655,13 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("get_account_trc20_transactions should return formatted TRC20 transactions", async () => {
-      const mockResult = { transactions: [{ transaction_id: "trc20tx1" }], total: 1 };
+      const mockResult = { transactions: [{ transaction_id: "trc20tx1" }], count: 1 };
       (services.getAccountTrc20Transactions as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_account_trc20_transactions").handler({
         address: "Taddr",
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
     });
 
     it("get_account_trc20_transactions should handle errors", async () => {
@@ -674,13 +674,13 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("get_account_internal_transactions should return formatted internal transactions", async () => {
-      const mockResult = { transactions: [{ transaction_id: "itx1" }], total: 1 };
+      const mockResult = { transactions: [{ transaction_id: "itx1" }], count: 1 };
       (services.getAccountInternalTransactions as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_account_internal_transactions").handler({
         address: "Taddr",
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
     });
 
     it("get_account_internal_transactions should handle errors", async () => {
@@ -695,14 +695,14 @@ describe("TRON Tools Unit Tests", () => {
     it("get_account_trc20_balances should return balances", async () => {
       const mockResult = {
         balances: [{ address: "Ttoken", balance: "1000" }],
-        total: 1,
+        count: 1,
       };
       (services.getAccountTrc20Balances as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_account_trc20_balances").handler({
         address: "Taddr",
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
       expect(content.balances[0].balance).toBe("1000");
     });
 
@@ -718,13 +718,13 @@ describe("TRON Tools Unit Tests", () => {
 
   describe("Contract Data Tools", () => {
     it("get_contract_transactions should return formatted transactions", async () => {
-      const mockResult = { transactions: [{ txID: "ctx1" }], total: 1 };
+      const mockResult = { transactions: [{ txID: "ctx1" }], count: 1 };
       (services.getContractTransactions as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_contract_transactions").handler({
         address: "Tcontract",
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
       expect(content.transactions[0].txID).toBe("ctx1");
     });
 
@@ -738,13 +738,13 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("get_contract_internal_transactions should return formatted internal transactions", async () => {
-      const mockResult = { transactions: [{ transaction_id: "citx1" }], total: 1 };
+      const mockResult = { transactions: [{ transaction_id: "citx1" }], count: 1 };
       (services.getContractInternalTransactions as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_contract_internal_transactions").handler({
         address: "Tcontract",
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
     });
 
     it("get_contract_internal_transactions should handle errors", async () => {
@@ -759,14 +759,14 @@ describe("TRON Tools Unit Tests", () => {
     it("get_trc20_token_holders should return holder list", async () => {
       const mockResult = {
         holders: [{ address: "Tholder", balance: "9999" }],
-        total: 1,
+        count: 1,
       };
       (services.getTrc20TokenHolders as any).mockResolvedValue(mockResult);
       const result = await registeredTools.get("get_trc20_token_holders").handler({
         address: "Ttoken",
       });
       const content = JSON.parse(result.content[0].text);
-      expect(content.total).toBe(1);
+      expect(content.count).toBe(1);
       expect(content.holders[0].balance).toBe("9999");
     });
 

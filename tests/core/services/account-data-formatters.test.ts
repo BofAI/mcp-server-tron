@@ -108,7 +108,7 @@ describe("formatTransactions", () => {
 
     const result = formatTransactions(raw);
     expect(result.transactions).toHaveLength(1);
-    expect(result.total).toBe(1);
+    expect(result.count).toBe(1);
     expect(result.fingerprint).toBe("page2");
 
     const tx = result.transactions[0];
@@ -126,7 +126,7 @@ describe("formatTransactions", () => {
   it("should handle empty data", () => {
     const result = formatTransactions({ data: [] });
     expect(result.transactions).toEqual([]);
-    expect(result.total).toBe(0);
+    expect(result.count).toBe(0);
     expect(result.fingerprint).toBeUndefined();
   });
 

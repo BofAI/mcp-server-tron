@@ -22,7 +22,7 @@ describe("Account Data Services Integration (Nile)", () => {
     const result = await getAccountTransactions(TEST_ADDRESS, { limit: 5 }, "nile");
     expect(Array.isArray(result.transactions)).toBe(true);
     expect(result.transactions.length).toBeLessThanOrEqual(5);
-    expect(typeof result.total).toBe("number");
+    expect(typeof result.count).toBe("number");
   }, 20000);
 
   it("should get account TRC20 transactions", async () => {
@@ -34,12 +34,12 @@ describe("Account Data Services Integration (Nile)", () => {
   it("should get account internal transactions", async () => {
     const result = await getAccountInternalTransactions(TEST_ADDRESS, { limit: 5 }, "nile");
     expect(Array.isArray(result.transactions)).toBe(true);
-    expect(typeof result.total).toBe("number");
+    expect(typeof result.count).toBe("number");
   }, 20000);
 
   it("should get account TRC20 balances", async () => {
     const result = await getAccountTrc20Balances(TEST_ADDRESS, {}, "nile");
     expect(Array.isArray(result.balances)).toBe(true);
-    expect(typeof result.total).toBe("number");
+    expect(typeof result.count).toBe("number");
   }, 20000);
 });

@@ -1,29 +1,10 @@
-import { getTronWeb } from "./clients.js";
 import {
   formatTransactions,
   formatInternalTransactions,
   normalizeKeyValuePairs,
   type PaginationOptions,
 } from "./account-data.js";
-
-// ---------------------------------------------------------------------------
-// TronGrid GET helper (duplicated privately to avoid circular deps)
-// ---------------------------------------------------------------------------
-
-async function tronGridGet<T = unknown>(
-  network: string,
-  path: string,
-  params: Record<string, unknown> = {},
-): Promise<T> {
-  const tronWeb = getTronWeb(network);
-  const cleanParams: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) {
-      cleanParams[key] = value;
-    }
-  }
-  return tronWeb.fullNode.request(path, cleanParams, "get") as Promise<T>;
-}
+import { tronGridGet, type TronGridListResponse } from "./trongrid-client.js";
 
 // ---------------------------------------------------------------------------
 // Service functions
@@ -79,15 +60,15 @@ export async function getTrc20TokenHolders(
   options: { limit?: number; fingerprint?: string; orderBy?: string } = {},
   network = "mainnet",
 ) {
-  const raw = await tronGridGet(network, `/v1/contracts/${address}/tokens`, {
+  const raw = await tronGridGet<TronGridListResponse>(network, `/v1/contracts/${address}/tokens`, {
     limit: options.limit,
     fingerprint: options.fingerprint,
     order_by: options.orderBy,
   });
-  const data = (raw as any).data ?? [];
+  const data = raw.data ?? [];
   return {
     holders: normalizeKeyValuePairs(data),
-    total: data.length,
-    ...((raw as any).meta?.fingerprint ? { fingerprint: (raw as any).meta.fingerprint } : {}),
+    count: data.length,
+    ...(raw.meta?.fingerprint ? { fingerprint: raw.meta.fingerprint } : {}),
   };
 }

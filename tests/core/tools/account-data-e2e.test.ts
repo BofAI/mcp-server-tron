@@ -44,7 +44,7 @@ describe("TronGrid Data Tools E2E (Nile)", () => {
     const content = JSON.parse(result.content[0].text);
     expect(Array.isArray(content.transactions)).toBe(true);
     expect(content.transactions.length).toBeLessThanOrEqual(3);
-    expect(typeof content.total).toBe("number");
+    expect(typeof content.count).toBe("number");
   }, 20000);
 
   it("get_account_trc20_transactions should return TRC20 transactions from Nile", async () => {
@@ -67,7 +67,7 @@ describe("TronGrid Data Tools E2E (Nile)", () => {
     expect(result.isError).toBeUndefined();
     const content = JSON.parse(result.content[0].text);
     expect(Array.isArray(content.transactions)).toBe(true);
-    expect(typeof content.total).toBe("number");
+    expect(typeof content.count).toBe("number");
   }, 20000);
 
   it("get_account_trc20_balances should return balances from Nile", async () => {
@@ -78,7 +78,7 @@ describe("TronGrid Data Tools E2E (Nile)", () => {
     expect(result.isError).toBeUndefined();
     const content = JSON.parse(result.content[0].text);
     expect(Array.isArray(content.balances)).toBe(true);
-    expect(typeof content.total).toBe("number");
+    expect(typeof content.count).toBe("number");
   }, 20000);
 
   it("get_trc20_token_holders should return holders from Nile", async () => {
@@ -90,6 +90,6 @@ describe("TronGrid Data Tools E2E (Nile)", () => {
     expect(result.isError).toBeUndefined();
     const content = JSON.parse(result.content[0].text);
     expect(Array.isArray(content.holders)).toBe(true);
-    expect(typeof content.total).toBe("number");
+    expect(typeof content.count).toBe("number");
   }, 20000);
 });

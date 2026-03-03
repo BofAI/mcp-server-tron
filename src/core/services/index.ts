@@ -13,6 +13,7 @@ export * from "./staking.js";
 export * from "./nodes.js";
 export * from "./mempool.js";
 export * from "./events.js";
+export * from "./trongrid-client.js";
 export * from "./account-data.js";
 export * from "./contract-data.js";
 export * from "./utils.js"; // Export utils as top level as well
@@ -32,6 +33,7 @@ import * as staking from "./staking.js";
 import * as nodes from "./nodes.js";
 import * as mempool from "./mempool.js";
 import * as events from "./events.js";
+import * as trongridClient from "./trongrid-client.js";
 import * as accountData from "./account-data.js";
 import * as contractData from "./contract-data.js";
 
@@ -50,6 +52,7 @@ export const helpers = {
   ...nodes,
   ...mempool,
   ...events,
+  ...trongridClient,
   ...accountData,
   ...contractData,
   ...utils,

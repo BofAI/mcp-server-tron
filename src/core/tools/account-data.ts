@@ -58,7 +58,11 @@ export function registerAccountDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("Account address (base58 T-address or hex 41-prefixed)"),
-        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        limit: z
+          .number()
+          .max(200)
+          .optional()
+          .describe("Max transactions per page (default 20, max 200)"),
         fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
@@ -71,7 +75,7 @@ export function registerAccountDataTools(registerTool: RegisterToolFn) {
         title: "Get Account Transactions",
         readOnlyHint: true,
         destructiveHint: false,
-        idempotentHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
     },
@@ -133,7 +137,11 @@ export function registerAccountDataTools(registerTool: RegisterToolFn) {
           .string()
           .optional()
           .describe("Filter by specific TRC20 token contract address"),
-        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        limit: z
+          .number()
+          .max(200)
+          .optional()
+          .describe("Max transactions per page (default 20, max 200)"),
         fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
@@ -146,7 +154,7 @@ export function registerAccountDataTools(registerTool: RegisterToolFn) {
         title: "Get Account TRC20 Transactions",
         readOnlyHint: true,
         destructiveHint: false,
-        idempotentHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
     },
@@ -205,7 +213,11 @@ export function registerAccountDataTools(registerTool: RegisterToolFn) {
           .string()
           .min(1)
           .describe("Account address (base58 T-address or hex 41-prefixed)"),
-        limit: z.number().optional().describe("Max transactions per page (default 20, max 200)"),
+        limit: z
+          .number()
+          .max(200)
+          .optional()
+          .describe("Max transactions per page (default 20, max 200)"),
         fingerprint: z.string().optional().describe("Pagination token from previous response"),
         onlyConfirmed: z.boolean().optional().describe("Only return confirmed transactions"),
         onlyUnconfirmed: z.boolean().optional().describe("Only return unconfirmed transactions"),
@@ -218,7 +230,7 @@ export function registerAccountDataTools(registerTool: RegisterToolFn) {
         title: "Get Account Internal Transactions",
         readOnlyHint: true,
         destructiveHint: false,
-        idempotentHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
     },
