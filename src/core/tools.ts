@@ -1758,6 +1758,105 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   );
 
   // ============================================================================
+  // ACCOUNT RESOURCE TOOLS (Delegate resources)
+  // ============================================================================
+
+  registerTool(
+    "delegate_resource",
+    {
+      description:
+        "Delegate staked resources (BANDWIDTH or ENERGY) from the configured wallet to another address.",
+      inputSchema: {
+        receiverAddress: z.string().describe("The address that will receive the delegated resources"),
+        amount: z
+          .number()
+          .describe("Amount of resources to delegate in Sun (1 TRX = 1,000,000 Sun)"),
+        resource: z
+          .enum(["BANDWIDTH", "ENERGY"])
+          .describe("Resource type to delegate (BANDWIDTH or ENERGY)"),
+        lock: z
+          .boolean()
+          .optional()
+          .describe(
+            "Whether the delegation is locked (non-revocable within the lock period). Defaults to false.",
+          ),
+        lockPeriod: z
+          .number()
+          .optional()
+          .describe(
+            "Lock period in blocks when lock is true. Ignored if lock is false. Defaults to 0.",
+          ),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Delegate Resource",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({
+      receiverAddress,
+      amount,
+      resource,
+      lock,
+      lockPeriod,
+      network = "mainnet",
+    }) => {
+      try {
+        const privateKey = getConfiguredPrivateKey();
+        const senderAddress = getWalletAddressFromKey();
+        const txHash = await services.delegateResource(
+          privateKey,
+          {
+            amount,
+            receiverAddress,
+            resource: resource as "BANDWIDTH" | "ENERGY",
+            lock,
+            lockPeriod,
+          },
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  from: senderAddress,
+                  to: receiverAddress,
+                  amount,
+                  resource,
+                  lock: lock ?? false,
+                  lockPeriod: lock ? lockPeriod ?? 0 : 0,
+                  txHash,
+                  message:
+                    "Delegate resource transaction sent. Make sure you have enough frozen balance to cover this delegation.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error delegating resource: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================
 

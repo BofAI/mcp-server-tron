@@ -32,6 +32,7 @@ vi.mock("../../src/core/services/index", async () => {
     updateSetting: vi.fn(),
     updateEnergyLimit: vi.fn(),
     clearABI: vi.fn(),
+    delegateResource: vi.fn(),
     estimateEnergy: vi.fn(),
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
@@ -66,7 +67,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 30 TRON tools", () => {
+    it("should register all 31 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -86,6 +87,7 @@ describe("TRON Tools Unit Tests", () => {
         "update_contract_setting",
         "update_energy_limit",
         "clear_abi",
+        "delegate_resource",
         "multicall",
         "write_contract",
         "transfer_trx",
@@ -406,6 +408,41 @@ describe("TRON Tools Unit Tests", () => {
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx_clear");
       expect(content.contractAddress).toBe("Tcontract");
+    });
+
+    it("delegate_resource should call delegateResource service", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.delegateResource as any).mockResolvedValue("tx_delegate");
+
+      const result = await registeredTools.get("delegate_resource").handler({
+        receiverAddress: "Treceiver",
+        amount: 1000000,
+        resource: "ENERGY",
+        lock: true,
+        lockPeriod: 12345,
+        network: "nile",
+      });
+
+      expect(services.delegateResource).toHaveBeenCalledWith(
+        "key",
+        {
+          amount: 1000000,
+          receiverAddress: "Treceiver",
+          resource: "ENERGY",
+          lock: true,
+          lockPeriod: 12345,
+        },
+        "nile",
+      );
+
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("tx_delegate");
+      expect(content.to).toBe("Treceiver");
+      expect(content.amount).toBe(1000000);
+      expect(content.resource).toBe("ENERGY");
+      expect(content.lock).toBe(true);
+      expect(content.lockPeriod).toBe(12345);
     });
 
     it("estimate_energy should call estimateEnergy service", async () => {
