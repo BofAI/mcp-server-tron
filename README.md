@@ -277,6 +277,9 @@ Opencode:
 | :----------------------- | :-------------------------------------- | :------------- |
 | `get_chain_info`         | Get current block and chain ID.         | `network`      |
 | `get_chain_parameters`   | Get current Energy and Bandwidth costs. | `network`      |
+| `get_energy_prices`      | Query historical energy unit price.     | `network`      |
+| `get_bandwidth_prices`   | Query historical bandwidth unit price.  | `network`      |
+| `get_burn_trx`           | Query total TRX burned from fees.       | `network`      |
 | `get_supported_networks` | List available networks.                | -              |
 
 #### Blocks & Transactions
@@ -287,6 +290,24 @@ Opencode:
 | `get_latest_block`     | Get the latest block.                      | `network`                    |
 | `get_transaction`      | Get transaction details by hash.           | `txHash`, `network`          |
 | `get_transaction_info` | Get receipt/info including resource usage. | `txHash`, `network`          |
+| `get_block_by_num`     | Query block by block height.               | `num`, `network`             |
+| `get_block_by_id`      | Query block by block ID (hash).            | `value`, `network`           |
+| `get_block_by_latest_num` | Get latest N blocks (solidified).       | `num`, `network`             |
+| `get_block_by_limit_next`  | Get blocks in range [startNum, endNum). | `startNum`, `endNum`, `network` |
+| `get_now_block`        | Get the current latest block info.         | `network`                    |
+| `get_transaction_by_id` | Query transaction status/content by txID. | `value`, `network`           |
+| `get_transaction_info_by_id` | Query transaction receipt by txID.   | `value`, `network`           |
+| `get_transaction_info_by_block_num` | Get receipts for all txs in a block. | `num`, `network`     |
+| `get_approved_list`    | Query the list of accounts that signed a transaction. | `transaction`, `network` |
+| `get_block_balance`    | Get all balance change operations in a block. | `hash`, `number`, `network` |
+
+#### Broadcast & Transaction Building (Write)
+
+| Tool Name               | Description                                                        | Key Parameters                      |
+| :---------------------- | :----------------------------------------------------------------- | :---------------------------------- |
+| `create_transaction`    | Create an unsigned TRX transfer transaction.                       | `ownerAddress`, `toAddress`, `amount`, `network` |
+| `broadcast_transaction` | Broadcast a signed transaction JSON object to the TRON network.     | `transaction`, `network`           |
+| `broadcast_hex`         | Broadcast a signed protobuf-encoded transaction hex string.         | `transaction`, `network`           |
 
 #### Balances
 
