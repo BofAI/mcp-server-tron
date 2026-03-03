@@ -1022,6 +1022,73 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   );
 
   registerTool(
+    "update_contract_setting",
+    {
+      description:
+        "Update a contract's consume_user_resource_percent (user pay ratio). Requires the contract creator's wallet.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        consumeUserResourcePercent: z
+          .number()
+          .describe("New consume_user_resource_percent value (0-100)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Update Contract Setting",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, consumeUserResourcePercent, network = "mainnet" }) => {
+      try {
+        const privateKey = getConfiguredPrivateKey();
+        const senderAddress = getWalletAddressFromKey();
+        const txHash = await services.updateSetting(
+          privateKey,
+          contractAddress,
+          consumeUserResourcePercent,
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  contractAddress,
+                  from: senderAddress,
+                  consumeUserResourcePercent,
+                  txHash,
+                  message:
+                    "Contract setting updated. This changes the user pay ratio for contract execution.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating contract setting: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
     "estimate_energy",
     {
       description: "Estimate energy consumption for a smart contract call (simulation).",

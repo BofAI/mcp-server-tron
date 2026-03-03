@@ -142,6 +142,38 @@ export async function getContractInfo(contractAddress: string, network = "mainne
 }
 
 /**
+ * Update contract setting: consume_user_resource_percent (user pay ratio)
+ */
+export async function updateSetting(
+  privateKey: string,
+  contractAddress: string,
+  consumeUserResourcePercent: number,
+  network = "mainnet",
+) {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
+    const tx = await tronWeb.transactionBuilder.updateSetting(
+      contractAddress,
+      consumeUserResourcePercent,
+      ownerAddress,
+    );
+
+    const signedTx = await tronWeb.trx.sign(tx, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`UpdateSetting failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to update setting: ${error.message}`);
+  }
+}
+
+/**
  * Parse ABI (helper to ensure correct format for TronWeb if needed)
  */
 export function parseABI(abiJson: string | any[]): any[] {
