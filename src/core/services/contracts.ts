@@ -96,6 +96,19 @@ export async function fetchContractABI(contractAddress: string, network = "mainn
 }
 
 /**
+ * Get full contract metadata from the chain (including bytecode and ABI if available)
+ */
+export async function getContract(contractAddress: string, network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  try {
+    const contract = await tronWeb.trx.getContract(contractAddress);
+    return contract;
+  } catch (error: any) {
+    throw new Error(`Failed to get contract: ${error.message}`);
+  }
+}
+
+/**
  * Parse ABI (helper to ensure correct format for TronWeb if needed)
  */
 export function parseABI(abiJson: string | any[]): any[] {

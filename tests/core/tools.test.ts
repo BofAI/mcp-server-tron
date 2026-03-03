@@ -27,6 +27,7 @@ vi.mock("../../src/core/services/index", async () => {
     getTransaction: vi.fn(),
     getTransactionInfo: vi.fn(),
     deployContract: vi.fn(),
+    getContract: vi.fn(),
     estimateEnergy: vi.fn(),
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
@@ -61,7 +62,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 25 TRON tools", () => {
+    it("should register all 26 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -76,6 +77,7 @@ describe("TRON Tools Unit Tests", () => {
         "get_transaction",
         "get_transaction_info",
         "read_contract",
+        "get_contract",
         "multicall",
         "write_contract",
         "transfer_trx",
@@ -240,6 +242,17 @@ describe("TRON Tools Unit Tests", () => {
       });
       const content = JSON.parse(result.content[0].text);
       expect(content.result).toContain("result");
+    });
+
+    it("get_contract should fetch raw contract metadata", async () => {
+      (services.getContract as any).mockResolvedValue({ contract_address: "addr", bytecode: "0x" });
+      const result = await registeredTools.get("get_contract").handler({
+        contractAddress: "addr",
+        network: "nile",
+      });
+      expect(services.getContract).toHaveBeenCalledWith("addr", "nile");
+      const content = JSON.parse(result.content[0].text);
+      expect(content.contract.contract_address).toBe("addr");
     });
 
     it("multicall should execute batch calls and handle string version", async () => {
