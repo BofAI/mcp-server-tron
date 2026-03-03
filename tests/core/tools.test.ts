@@ -79,6 +79,15 @@ vi.mock("../../src/core/services/index", async () => {
     broadcastTransaction: vi.fn(),
     broadcastHex: vi.fn(),
     createTransaction: vi.fn(),
+    // TronGrid data tools
+    getAccountInfo: vi.fn(),
+    getAccountTransactions: vi.fn(),
+    getAccountTrc20Transactions: vi.fn(),
+    getAccountInternalTransactions: vi.fn(),
+    getAccountTrc20Balances: vi.fn(),
+    getContractTransactions: vi.fn(),
+    getContractInternalTransactions: vi.fn(),
+    getTrc20TokenHolders: vi.fn(),
   };
 });
 
@@ -106,7 +115,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 73 TRON tools", () => {
+    it("should register all 81 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -184,6 +193,15 @@ describe("TRON Tools Unit Tests", () => {
         "create_proposal",
         "approve_proposal",
         "delete_proposal",
+        // TronGrid data tools
+        "get_account_info",
+        "get_account_transactions",
+        "get_account_trc20_transactions",
+        "get_account_internal_transactions",
+        "get_account_trc20_balances",
+        "get_contract_transactions",
+        "get_contract_internal_transactions",
+        "get_trc20_token_holders",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -318,6 +336,16 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("get_brokerage")).toBe(true);
       expect(registeredTools.has("list_proposals")).toBe(true);
       expect(registeredTools.has("get_proposal")).toBe(true);
+
+      // TronGrid data tools (all read-only, no wallet needed)
+      expect(registeredTools.has("get_account_info")).toBe(true);
+      expect(registeredTools.has("get_account_transactions")).toBe(true);
+      expect(registeredTools.has("get_account_trc20_transactions")).toBe(true);
+      expect(registeredTools.has("get_account_internal_transactions")).toBe(true);
+      expect(registeredTools.has("get_account_trc20_balances")).toBe(true);
+      expect(registeredTools.has("get_contract_transactions")).toBe(true);
+      expect(registeredTools.has("get_contract_internal_transactions")).toBe(true);
+      expect(registeredTools.has("get_trc20_token_holders")).toBe(true);
     });
   });
 
@@ -770,6 +798,177 @@ describe("TRON Tools Unit Tests", () => {
       const result = await registeredTools.get("get_events_of_latest_block").handler({});
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error fetching events of latest block");
+    });
+  });
+
+  describe("Account Data Tools", () => {
+    it("get_account_info should return formatted account info", async () => {
+      const mockResult = {
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+        balance_trx: "10",
+        account_name: "Test",
+        trc20_balances: [],
+      };
+      (services.getAccountInfo as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_account_info").handler({
+        address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.address).toBe("T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb");
+      expect(content.balance_trx).toBe("10");
+    });
+
+    it("get_account_info should handle errors", async () => {
+      (services.getAccountInfo as any).mockRejectedValue(new Error("Not found"));
+      const result = await registeredTools.get("get_account_info").handler({ address: "bad" });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching account info");
+    });
+
+    it("get_account_transactions should return formatted transactions", async () => {
+      const mockResult = { transactions: [{ txID: "tx1" }], count: 1 };
+      (services.getAccountTransactions as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_account_transactions").handler({
+        address: "Taddr",
+        limit: 10,
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+      expect(content.transactions[0].txID).toBe("tx1");
+    });
+
+    it("get_account_transactions should handle errors", async () => {
+      (services.getAccountTransactions as any).mockRejectedValue(new Error("Network error"));
+      const result = await registeredTools.get("get_account_transactions").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching account transactions");
+    });
+
+    it("get_account_trc20_transactions should return formatted TRC20 transactions", async () => {
+      const mockResult = { transactions: [{ transaction_id: "trc20tx1" }], count: 1 };
+      (services.getAccountTrc20Transactions as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_account_trc20_transactions").handler({
+        address: "Taddr",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+    });
+
+    it("get_account_trc20_transactions should handle errors", async () => {
+      (services.getAccountTrc20Transactions as any).mockRejectedValue(new Error("API error"));
+      const result = await registeredTools.get("get_account_trc20_transactions").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching TRC20 transactions");
+    });
+
+    it("get_account_internal_transactions should return formatted internal transactions", async () => {
+      const mockResult = { transactions: [{ transaction_id: "itx1" }], count: 1 };
+      (services.getAccountInternalTransactions as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_account_internal_transactions").handler({
+        address: "Taddr",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+    });
+
+    it("get_account_internal_transactions should handle errors", async () => {
+      (services.getAccountInternalTransactions as any).mockRejectedValue(new Error("Timeout"));
+      const result = await registeredTools.get("get_account_internal_transactions").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching internal transactions");
+    });
+
+    it("get_account_trc20_balances should return balances", async () => {
+      const mockResult = {
+        balances: [{ address: "Ttoken", balance: "1000" }],
+        count: 1,
+      };
+      (services.getAccountTrc20Balances as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_account_trc20_balances").handler({
+        address: "Taddr",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+      expect(content.balances[0].balance).toBe("1000");
+    });
+
+    it("get_account_trc20_balances should handle errors", async () => {
+      (services.getAccountTrc20Balances as any).mockRejectedValue(new Error("Failed"));
+      const result = await registeredTools.get("get_account_trc20_balances").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching TRC20 balances");
+    });
+  });
+
+  describe("Contract Data Tools", () => {
+    it("get_contract_transactions should return formatted transactions", async () => {
+      const mockResult = { transactions: [{ txID: "ctx1" }], count: 1 };
+      (services.getContractTransactions as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_contract_transactions").handler({
+        address: "Tcontract",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+      expect(content.transactions[0].txID).toBe("ctx1");
+    });
+
+    it("get_contract_transactions should handle errors", async () => {
+      (services.getContractTransactions as any).mockRejectedValue(new Error("Not found"));
+      const result = await registeredTools.get("get_contract_transactions").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching contract transactions");
+    });
+
+    it("get_contract_internal_transactions should return formatted internal transactions", async () => {
+      const mockResult = { transactions: [{ transaction_id: "citx1" }], count: 1 };
+      (services.getContractInternalTransactions as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_contract_internal_transactions").handler({
+        address: "Tcontract",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+    });
+
+    it("get_contract_internal_transactions should handle errors", async () => {
+      (services.getContractInternalTransactions as any).mockRejectedValue(new Error("Error"));
+      const result = await registeredTools.get("get_contract_internal_transactions").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching contract internal transactions");
+    });
+
+    it("get_trc20_token_holders should return holder list", async () => {
+      const mockResult = {
+        holders: [{ address: "Tholder", balance: "9999" }],
+        count: 1,
+      };
+      (services.getTrc20TokenHolders as any).mockResolvedValue(mockResult);
+      const result = await registeredTools.get("get_trc20_token_holders").handler({
+        address: "Ttoken",
+      });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.count).toBe(1);
+      expect(content.holders[0].balance).toBe("9999");
+    });
+
+    it("get_trc20_token_holders should handle errors", async () => {
+      (services.getTrc20TokenHolders as any).mockRejectedValue(new Error("Invalid contract"));
+      const result = await registeredTools.get("get_trc20_token_holders").handler({
+        address: "bad",
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching token holders");
     });
   });
 
