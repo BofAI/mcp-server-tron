@@ -92,6 +92,51 @@ describe("TRON Tools Integration (Nile)", () => {
     expect(content.rpcUrl).toContain("nile");
   }, 20000);
 
+  it("get_now_block should return the current block from Nile", async () => {
+    const tool = registeredTools.get("get_now_block");
+    const result = await tool.handler({ network: "nile" });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    // Response shape depends on node/provider; just ensure we got a block-like object back.
+    expect(content).toBeDefined();
+  }, 20000);
+
+  it("get_block_by_latest_num should return N recent blocks from Nile", async () => {
+    const tool = registeredTools.get("get_block_by_latest_num");
+    const result = await tool.handler({ num: 2, network: "nile" });
+
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    const blocks = Array.isArray(content)
+      ? content
+      : Array.isArray(content?.block)
+        ? content.block
+        : undefined;
+    expect(Array.isArray(blocks)).toBe(true);
+    // Some providers may return fewer blocks than requested; ensure we got at least one.
+    expect((blocks as any[]).length).toBeGreaterThan(0);
+  }, 20000);
+
+  it("get_block_by_num should return a specific block from Nile", async () => {
+    const latestTool = registeredTools.get("get_now_block");
+    const latest = await latestTool.handler({ network: "nile" });
+    expect(latest.isError).toBeUndefined();
+    const latestContent = JSON.parse(latest.content[0].text);
+
+    const blockNum =
+      typeof latestContent?.block_header?.raw_data?.number === "number"
+        ? latestContent.block_header.raw_data.number
+        : undefined;
+    expect(typeof blockNum).toBe("number");
+
+    const tool = registeredTools.get("get_block_by_num");
+    const result = await tool.handler({ num: blockNum, network: "nile" });
+    expect(result.isError).toBeUndefined();
+    const content = JSON.parse(result.content[0].text);
+    expect(content).toBeDefined();
+  }, 20000);
+
   it("multicall should work with real contracts on Nile", async () => {
     const tool = registeredTools.get("multicall");
     const result = await tool.handler({

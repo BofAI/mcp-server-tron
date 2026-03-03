@@ -68,6 +68,17 @@ vi.mock("../../src/core/services/index", async () => {
     createProposal: vi.fn(),
     approveProposal: vi.fn(),
     deleteProposal: vi.fn(),
+    getBlockByLatestNum: vi.fn(),
+    getBlockByLimitNext: vi.fn(),
+    getTransactionInfoByBlockNum: vi.fn(),
+    getEnergyPrices: vi.fn(),
+    getBandwidthPrices: vi.fn(),
+    getBurnTrx: vi.fn(),
+    getApprovedList: vi.fn(),
+    getBlockBalance: vi.fn(),
+    broadcastTransaction: vi.fn(),
+    broadcastHex: vi.fn(),
+    createTransaction: vi.fn(),
   };
 });
 
@@ -95,7 +106,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 57 TRON tools", () => {
+    it("should register all 73 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -120,6 +131,22 @@ describe("TRON Tools Unit Tests", () => {
         "freeze_balance_v2",
         "unfreeze_balance_v2",
         "withdraw_expire_unfreeze",
+        "get_block_by_num",
+        "get_block_by_id",
+        "get_block_by_latest_num",
+        "get_block_by_limit_next",
+        "get_now_block",
+        "get_transaction_by_id",
+        "get_transaction_info_by_id",
+        "get_transaction_info_by_block_num",
+        "get_energy_prices",
+        "get_bandwidth_prices",
+        "get_burn_trx",
+        "get_approved_list",
+        "get_block_balance",
+        "broadcast_transaction",
+        "broadcast_hex",
+        "create_transaction",
         "list_nodes",
         "get_node_info",
         "get_pending_transactions",
@@ -161,6 +188,8 @@ describe("TRON Tools Unit Tests", () => {
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
       });
+
+      expect(registeredTools.size).toBe(expectedTools.length);
     });
 
     it("should NOT register write tools when readOnly option is true", () => {
@@ -181,6 +210,9 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("create_account")).toBe(false);
       expect(registeredTools.has("update_account")).toBe(false);
       expect(registeredTools.has("account_permission_update")).toBe(false);
+      expect(registeredTools.has("broadcast_transaction")).toBe(false);
+      expect(registeredTools.has("broadcast_hex")).toBe(false);
+      expect(registeredTools.has("create_transaction")).toBe(false);
 
       // Governance/proposal write tools should NOT be registered
       expect(registeredTools.has("create_witness")).toBe(false);
@@ -233,6 +265,9 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("create_account")).toBe(false);
       expect(registeredTools.has("update_account")).toBe(false);
       expect(registeredTools.has("account_permission_update")).toBe(false);
+      expect(registeredTools.has("broadcast_transaction")).toBe(false);
+      expect(registeredTools.has("broadcast_hex")).toBe(false);
+      expect(registeredTools.has("create_transaction")).toBe(false);
 
       // Governance/proposal write tools should NOT be registered (no wallet)
       expect(registeredTools.has("create_witness")).toBe(false);
@@ -333,6 +368,52 @@ describe("TRON Tools Unit Tests", () => {
       (services.getTransaction as any).mockResolvedValue({ txID: "tx123" });
       await registeredTools.get("get_transaction").handler({ txHash: "tx123" });
       expect(services.getTransaction).toHaveBeenCalledWith("tx123", "mainnet");
+    });
+
+    it("get_now_block should fetch latest block via getLatestBlock", async () => {
+      (services.getLatestBlock as any).mockResolvedValue({ blockID: "b" });
+      await registeredTools.get("get_now_block").handler({ network: "nile" });
+      expect(services.getLatestBlock).toHaveBeenCalledWith("nile");
+    });
+
+    it("get_block_by_latest_num should call getBlockByLatestNum", async () => {
+      (services.getBlockByLatestNum as any).mockResolvedValue([{ blockID: "b" }]);
+      await registeredTools.get("get_block_by_latest_num").handler({ num: 2, network: "nile" });
+      expect(services.getBlockByLatestNum).toHaveBeenCalledWith(2, "nile");
+    });
+
+    it("get_transaction_info_by_block_num should call getTransactionInfoByBlockNum", async () => {
+      (services.getTransactionInfoByBlockNum as any).mockResolvedValue([{ id: "r" }]);
+      await registeredTools.get("get_transaction_info_by_block_num").handler({ num: 123 });
+      expect(services.getTransactionInfoByBlockNum).toHaveBeenCalledWith(123, "mainnet");
+    });
+  });
+
+  describe("Query & Broadcast Tools", () => {
+    it("broadcast_hex should call broadcastHex service", async () => {
+      (services.broadcastHex as any).mockResolvedValue({ result: true });
+      await registeredTools.get("broadcast_hex").handler({ transaction: "0xabc", network: "nile" });
+      expect(services.broadcastHex).toHaveBeenCalledWith("0xabc", "nile");
+    });
+
+    it("broadcast_transaction should parse JSON and call broadcastTransaction service", async () => {
+      (services.broadcastTransaction as any).mockResolvedValue({ result: true });
+      const txObj = { txID: "tx123" };
+      await registeredTools
+        .get("broadcast_transaction")
+        .handler({ transaction: JSON.stringify(txObj), network: "nile" });
+      expect(services.broadcastTransaction).toHaveBeenCalledWith(txObj, "nile");
+    });
+
+    it("create_transaction should call createTransaction service", async () => {
+      (services.createTransaction as any).mockResolvedValue({ raw_data: {} });
+      await registeredTools.get("create_transaction").handler({
+        ownerAddress: "Towner",
+        toAddress: "Tto",
+        amount: 1,
+        network: "nile",
+      });
+      expect(services.createTransaction).toHaveBeenCalledWith("Towner", "Tto", 1, "nile");
     });
   });
 
