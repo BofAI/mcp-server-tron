@@ -1089,6 +1089,73 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   );
 
   registerTool(
+    "update_energy_limit",
+    {
+      description:
+        "Update a contract's originEnergyLimit (max energy the contract creator will pay per execution). Requires the contract creator's wallet.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        originEnergyLimit: z
+          .number()
+          .describe("New originEnergyLimit value (energy units, must be > 0)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Update Energy Limit",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, originEnergyLimit, network = "mainnet" }) => {
+      try {
+        const privateKey = getConfiguredPrivateKey();
+        const senderAddress = getWalletAddressFromKey();
+        const txHash = await services.updateEnergyLimit(
+          privateKey,
+          contractAddress,
+          originEnergyLimit,
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  contractAddress,
+                  from: senderAddress,
+                  originEnergyLimit,
+                  txHash,
+                  message:
+                    "Contract energy limit updated. This changes the maximum energy the contract creator will pay per execution.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating energy limit: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
     "estimate_energy",
     {
       description: "Estimate energy consumption for a smart contract call (simulation).",

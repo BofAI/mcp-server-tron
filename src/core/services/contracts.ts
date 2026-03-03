@@ -174,6 +174,38 @@ export async function updateSetting(
 }
 
 /**
+ * Update contract originEnergyLimit (max energy the contract creator will pay per execution)
+ */
+export async function updateEnergyLimit(
+  privateKey: string,
+  contractAddress: string,
+  originEnergyLimit: number,
+  network = "mainnet",
+) {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
+    const tx = await tronWeb.transactionBuilder.updateEnergyLimit(
+      contractAddress,
+      originEnergyLimit,
+      ownerAddress,
+    );
+
+    const signedTx = await tronWeb.trx.sign(tx, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`UpdateEnergyLimit failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to update energy limit: ${error.message}`);
+  }
+}
+
+/**
  * Parse ABI (helper to ensure correct format for TronWeb if needed)
  */
 export function parseABI(abiJson: string | any[]): any[] {
