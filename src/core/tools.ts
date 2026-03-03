@@ -1856,6 +1856,78 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     },
   );
 
+  registerTool(
+    "undelegate_resource",
+    {
+      description:
+        "Revoke previously delegated staked resources (BANDWIDTH or ENERGY) from a receiver address back to the configured wallet.",
+      inputSchema: {
+        receiverAddress: z.string().describe("The address from which delegated resources will be revoked"),
+        amount: z
+          .number()
+          .describe("Amount of resources to revoke in Sun (1 TRX = 1,000,000 Sun)"),
+        resource: z
+          .enum(["BANDWIDTH", "ENERGY"])
+          .describe("Resource type to revoke (BANDWIDTH or ENERGY)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Undelegate Resource",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ receiverAddress, amount, resource, network = "mainnet" }) => {
+      try {
+        const privateKey = getConfiguredPrivateKey();
+        const senderAddress = getWalletAddressFromKey();
+        const txHash = await services.undelegateResource(
+          privateKey,
+          {
+            amount,
+            receiverAddress,
+            resource: resource as "BANDWIDTH" | "ENERGY",
+          },
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  from: senderAddress,
+                  to: receiverAddress,
+                  amount,
+                  resource,
+                  txHash,
+                  message:
+                    "Undelegate resource transaction sent. This revokes previously delegated resources.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error undelegating resource: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================

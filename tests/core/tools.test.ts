@@ -33,6 +33,7 @@ vi.mock("../../src/core/services/index", async () => {
     updateEnergyLimit: vi.fn(),
     clearABI: vi.fn(),
     delegateResource: vi.fn(),
+    undelegateResource: vi.fn(),
     estimateEnergy: vi.fn(),
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
@@ -67,7 +68,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 31 TRON tools", () => {
+    it("should register all 32 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -88,6 +89,7 @@ describe("TRON Tools Unit Tests", () => {
         "update_energy_limit",
         "clear_abi",
         "delegate_resource",
+        "undelegate_resource",
         "multicall",
         "write_contract",
         "transfer_trx",
@@ -443,6 +445,35 @@ describe("TRON Tools Unit Tests", () => {
       expect(content.resource).toBe("ENERGY");
       expect(content.lock).toBe(true);
       expect(content.lockPeriod).toBe(12345);
+    });
+
+    it("undelegate_resource should call undelegateResource service", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.undelegateResource as any).mockResolvedValue("tx_undelegate");
+
+      const result = await registeredTools.get("undelegate_resource").handler({
+        receiverAddress: "Treceiver",
+        amount: 500000,
+        resource: "BANDWIDTH",
+        network: "nile",
+      });
+
+      expect(services.undelegateResource).toHaveBeenCalledWith(
+        "key",
+        {
+          amount: 500000,
+          receiverAddress: "Treceiver",
+          resource: "BANDWIDTH",
+        },
+        "nile",
+      );
+
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("tx_undelegate");
+      expect(content.to).toBe("Treceiver");
+      expect(content.amount).toBe(500000);
+      expect(content.resource).toBe("BANDWIDTH");
     });
 
     it("estimate_energy should call estimateEnergy service", async () => {
