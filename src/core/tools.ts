@@ -2048,6 +2048,62 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     },
   );
 
+  registerTool(
+    "get_delegated_resource_account_index_v2",
+    {
+      description:
+        "Get delegated resource account index for an address under Stake 2.0 (who delegated to this address and who this address delegated to).",
+      inputSchema: {
+        address: z.string().describe("Wallet address (Base58 or hex)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Delegated Resource Account Index V2",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ address, network = "mainnet" }) => {
+      try {
+        const result = await services.getDelegatedResourceAccountIndexV2(address, network);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  account: result.account,
+                  fromAccounts: result.fromAccounts,
+                  toAccounts: result.toAccounts,
+                  message:
+                    "Delegated resource account index for the address, including who delegated to it and who it delegated to.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting delegated resource account index v2: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================

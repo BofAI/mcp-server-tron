@@ -117,7 +117,7 @@ export async function getCanDelegatedMaxSize(
       typeof (tronWeb.trx as any).getCanDelegatedMaxSize === "function"
         ? await (tronWeb.trx as any).getCanDelegatedMaxSize(address, resource)
         : await tronWeb.fullNode.request(
-            "walletsolidity/getcandelegatedmaxsize",
+            "wallet/getcandelegatedmaxsize",
             {
               owner_address: tronWeb.address.toHex(address),
               type,
@@ -144,7 +144,7 @@ export async function getCanDelegatedMaxSize(
 
 /**
  * Get delegated resource details between two addresses under Stake 2.0.
- * Wraps TronWeb's trx.getDelegatedResourceV2 / walletsolidity.getdelegatedresourcev2.
+ * Wraps TronWeb's trx.getDelegatedResourceV2 / wallet.getdelegatedresourcev2.
  */
 export async function getDelegatedResourceV2(
   fromAddress: string,
@@ -160,7 +160,7 @@ export async function getDelegatedResourceV2(
             confirmed: true,
           })
         : await tronWeb.fullNode.request(
-            "walletsolidity/getdelegatedresourcev2",
+            "wallet/getdelegatedresourcev2",
             {
               fromAddress: tronWeb.address.toHex(fromAddress),
               toAddress: tronWeb.address.toHex(toAddress),
@@ -193,6 +193,41 @@ export async function getDelegatedResourceV2(
     };
   } catch (error: any) {
     throw new Error(`Failed to get delegated resource v2: ${error.message}`);
+  }
+}
+
+/**
+ * Get delegated resource account index for an address under Stake 2.0.
+ * Wraps walletsolidity.getdelegatedresourceaccountindexv2.
+ */
+export async function getDelegatedResourceAccountIndexV2(
+  address: string,
+  network = "mainnet",
+) {
+  const tronWeb = getTronWeb(network);
+
+  try {
+    const res = await tronWeb.fullNode.request(
+      "wallet/getdelegatedresourceaccountindexv2",
+      {
+        value: tronWeb.address.toHex(address),
+        visible: false,
+      },
+      "post",
+    );
+
+    const account = (res as any)?.account ?? address;
+    const fromAccounts = (res as any)?.fromAccounts ?? [];
+    const toAccounts = (res as any)?.toAccounts ?? [];
+
+    return {
+      account,
+      fromAccounts,
+      toAccounts,
+      raw: res,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to get delegated resource account index v2: ${error.message}`);
   }
 }
 

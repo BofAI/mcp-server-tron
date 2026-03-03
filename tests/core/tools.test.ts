@@ -43,6 +43,7 @@ vi.mock("../../src/core/services/index", async () => {
     getCanWithdrawUnfreezeAmount: vi.fn(),
     getCanDelegatedMaxSize: vi.fn(),
     getDelegatedResourceV2: vi.fn(),
+    getDelegatedResourceAccountIndexV2: vi.fn(),
   };
 });
 
@@ -70,7 +71,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 34 TRON tools", () => {
+    it("should register all 35 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -107,6 +108,7 @@ describe("TRON Tools Unit Tests", () => {
         "get_can_withdraw_unfreeze_amount",
         "get_can_delegated_max_size",
         "get_delegated_resource_v2",
+        "get_delegated_resource_account_index_v2",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -653,6 +655,26 @@ describe("TRON Tools Unit Tests", () => {
       expect(content.to).toBe("Tto");
       expect(Array.isArray(content.delegatedResource)).toBe(true);
       expect(content.delegatedResource[0].frozenBalanceForBandwidthSun).toBe("1000000");
+    });
+
+    it("get_delegated_resource_account_index_v2 should call getDelegatedResourceAccountIndexV2 service", async () => {
+      (services.getDelegatedResourceAccountIndexV2 as any).mockResolvedValue({
+        account: "Taddress",
+        fromAccounts: ["Tfrom1", "Tfrom2"],
+        toAccounts: ["Tto1"],
+      });
+
+      const result = await registeredTools.get("get_delegated_resource_account_index_v2").handler({
+        address: "Taddress",
+        network: "nile",
+      });
+
+      expect(services.getDelegatedResourceAccountIndexV2).toHaveBeenCalledWith("Taddress", "nile");
+
+      const content = JSON.parse(result.content[0].text);
+      expect(content.account).toBe("Taddress");
+      expect(Array.isArray(content.fromAccounts)).toBe(true);
+      expect(content.fromAccounts[0]).toBe("Tfrom1");
     });
   });
 });
