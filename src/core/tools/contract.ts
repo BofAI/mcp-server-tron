@@ -356,8 +356,8 @@ export function registerContractTools(registerTool: RegisterToolFn) {
       inputSchema: {
         address: z.string().describe("Contract address"),
         functionName: z.string().describe("Function name to call"),
-        args: z.array(z.any()).optional().describe("Function arguments"),
-        abi: z.array(z.any()).describe("Contract ABI (required for encoding)"),
+        args: z.array(z.unknown()).optional().describe("Function arguments"),
+        abi: z.array(z.object({}).passthrough()).describe("Contract ABI (required for encoding)"),
         network: z.string().optional().describe("Network name. Defaults to mainnet."),
         ownerAddress: z
           .string()

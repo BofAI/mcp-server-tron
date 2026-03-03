@@ -11,9 +11,14 @@ import { registerTransactionTools } from "./transaction.js";
 import { registerContractTools } from "./contract.js";
 import { registerTransferTools } from "./transfer.js";
 import { registerStakingTools } from "./staking.js";
+import { registerQueryTools } from "./query.js";
+import { registerBroadcastTools } from "./broadcast.js";
 import { registerNodeTools } from "./node.js";
 import { registerMempoolTools } from "./mempool.js";
 import { registerEventTools } from "./event.js";
+import { registerAccountTools } from "./account.js";
+import { registerGovernanceTools } from "./governance.js";
+import { registerProposalTools } from "./proposals.js";
 import { registerAccountDataTools } from "./account-data.js";
 import { registerContractDataTools } from "./contract-data.js";
 
@@ -91,9 +96,14 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   registerContractTools(registerTool);
   registerTransferTools(registerTool);
   registerStakingTools(registerTool);
+  registerQueryTools(registerTool);
+  registerBroadcastTools(registerTool);
   registerNodeTools(registerTool);
   registerMempoolTools(registerTool);
   registerEventTools(registerTool);
+  registerAccountTools(registerTool);
+  registerGovernanceTools(registerTool);
+  registerProposalTools(registerTool);
   registerAccountDataTools(registerTool);
   registerContractDataTools(registerTool);
 }

@@ -47,7 +47,7 @@ This document provides essential information for AI agents working on this repos
 ### 🏗 Architecture
 
 - **src/core/services**: Contains the business logic and TronWeb integrations.
-- **src/core/tools/**: MCP tool definitions split by category, with schema validation using `zod`.
+- **src/core/tools/**: MCP tool definitions split by category (wallet, network, address, block, balance, transaction, contract, transfer, staking, account), with schema validation using `zod`.
 - **src/core/prompts.ts**: MCP prompt definitions.
 - **src/server**: Protocol-specific server implementations (Stdio/HTTP).
 

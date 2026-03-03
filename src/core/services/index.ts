@@ -10,9 +10,14 @@ export * from "./address.js";
 export * from "./wallet.js";
 export * from "./multicall-abi.js";
 export * from "./staking.js";
+export * from "./query.js";
+export * from "./broadcast.js";
 export * from "./nodes.js";
 export * from "./mempool.js";
 export * from "./events.js";
+export * from "./account.js";
+export * from "./governance.js";
+export * from "./proposals.js";
 export * from "./trongrid-client.js";
 export * from "./account-data.js";
 export * from "./contract-data.js";
@@ -30,15 +35,20 @@ import * as transfer from "./transfer.js";
 import * as utils from "./utils.js";
 import * as address from "./address.js";
 import * as staking from "./staking.js";
+import * as query from "./query.js";
+import * as broadcast from "./broadcast.js";
 import * as nodes from "./nodes.js";
 import * as mempool from "./mempool.js";
 import * as events from "./events.js";
+import * as account from "./account.js";
+import * as governance from "./governance.js";
+import * as proposals from "./proposals.js";
 import * as trongridClient from "./trongrid-client.js";
 import * as accountData from "./account-data.js";
 import * as contractData from "./contract-data.js";
 
 // Re-export specific utils function as 'helpers' for backward compatibility with tools code
-export const helpers = {
+export const helpers: Record<string, unknown> & { formatJson: (data: unknown) => string } = {
   ...clients,
   ...wallet,
   ...balance,
@@ -49,9 +59,14 @@ export const helpers = {
   ...transfer,
   ...address,
   ...staking,
+  ...query,
+  ...broadcast,
   ...nodes,
   ...mempool,
   ...events,
+  ...account,
+  ...governance,
+  ...proposals,
   ...trongridClient,
   ...accountData,
   ...contractData,
