@@ -78,6 +78,97 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     },
   );
 
+  // Raw contract metadata helpers
+  registerTool(
+    "get_contract",
+    {
+      description:
+        "Get raw contract metadata from the chain, including ABI (if verified) and bytecode.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Contract",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, network = "mainnet" }) => {
+      try {
+        const contract = await services.getContract(contractAddress, network);
+        return {
+          content: [
+            {
+              type: "text",
+              text: services.helpers.formatJson({
+                network,
+                contractAddress,
+                contract,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting contract: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
+    "get_contract_info",
+    {
+      description:
+        "Get high-level information about a contract: ABI, readable function signatures, and raw metadata.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Contract Info",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, network = "mainnet" }) => {
+      try {
+        const info = await services.getContractInfo(contractAddress, network);
+        return {
+          content: [
+            {
+              type: "text",
+              text: services.helpers.formatJson(info),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting contract info: ${error instanceof Error ? error.message : String(
+                error,
+              )}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   registerTool(
     "multicall",
     {
@@ -408,6 +499,199 @@ export function registerContractTools(registerTool: RegisterToolFn) {
             {
               type: "text",
               text: `Error estimating energy: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // Contract admin / configuration helpers
+  registerTool(
+    "update_contract_setting",
+    {
+      description:
+        "Update a contract's consume_user_resource_percent (user pay ratio). Requires the contract creator's wallet.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        consumeUserResourcePercent: z
+          .number()
+          .describe("New consume_user_resource_percent value (0-100)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Update Contract Setting",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, consumeUserResourcePercent, network = "mainnet" }) => {
+      try {
+        const privateKey = services.getConfiguredPrivateKey();
+        const senderAddress = services.getWalletAddressFromKey();
+        const txHash = await services.updateSetting(
+          privateKey,
+          contractAddress,
+          consumeUserResourcePercent,
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  contractAddress,
+                  from: senderAddress,
+                  consumeUserResourcePercent,
+                  txHash,
+                  message:
+                    "Contract setting updated. This changes the user pay ratio for contract execution.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating contract setting: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
+    "update_energy_limit",
+    {
+      description:
+        "Update a contract's originEnergyLimit (max energy the contract creator will pay per execution). Requires the contract creator's wallet.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        originEnergyLimit: z
+          .number()
+          .describe("New originEnergyLimit value (energy units, must be > 0)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Update Energy Limit",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, originEnergyLimit, network = "mainnet" }) => {
+      try {
+        const privateKey = services.getConfiguredPrivateKey();
+        const senderAddress = services.getWalletAddressFromKey();
+        const txHash = await services.updateEnergyLimit(
+          privateKey,
+          contractAddress,
+          originEnergyLimit,
+          network,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  contractAddress,
+                  from: senderAddress,
+                  originEnergyLimit,
+                  txHash,
+                  message:
+                    "Contract energy limit updated. This changes the maximum energy the contract creator will pay per execution.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating energy limit: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
+    "clear_abi",
+    {
+      description:
+        "Clear the on-chain ABI metadata of a contract (ClearABIContract). Requires the contract creator's wallet.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address whose ABI will be cleared"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Clear Contract ABI",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, network = "mainnet" }) => {
+      try {
+        const privateKey = services.getConfiguredPrivateKey();
+        const senderAddress = services.getWalletAddressFromKey();
+        const txHash = await services.clearABI(privateKey, contractAddress, network);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  contractAddress,
+                  from: senderAddress,
+                  txHash,
+                  message:
+                    "Contract ABI cleared on-chain. This removes ABI metadata from the contract.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error clearing contract ABI: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
             },
           ],
           isError: true,

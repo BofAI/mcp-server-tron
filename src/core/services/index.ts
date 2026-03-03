@@ -10,9 +10,7 @@ export * from "./address.js";
 export * from "./wallet.js";
 export * from "./multicall-abi.js";
 export * from "./staking.js";
-<<<<<<< HEAD
 export * from "./accountResource.js";
-=======
 export * from "./query.js";
 export * from "./broadcast.js";
 export * from "./nodes.js";
@@ -24,7 +22,6 @@ export * from "./proposals.js";
 export * from "./trongrid-client.js";
 export * from "./account-data.js";
 export * from "./contract-data.js";
->>>>>>> origin/dev/1.1.3-dev
 export * from "./utils.js"; // Export utils as top level as well
 
 // Add a helper object for easier access to everything
@@ -39,9 +36,7 @@ import * as transfer from "./transfer.js";
 import * as utils from "./utils.js";
 import * as address from "./address.js";
 import * as staking from "./staking.js";
-<<<<<<< HEAD
 import * as accountResource from "./accountResource.js";
-=======
 import * as query from "./query.js";
 import * as broadcast from "./broadcast.js";
 import * as nodes from "./nodes.js";
@@ -53,7 +48,6 @@ import * as proposals from "./proposals.js";
 import * as trongridClient from "./trongrid-client.js";
 import * as accountData from "./account-data.js";
 import * as contractData from "./contract-data.js";
->>>>>>> origin/dev/1.1.3-dev
 
 // Re-export specific utils function as 'helpers' for backward compatibility with tools code
 export const helpers: Record<string, unknown> & { formatJson: (data: unknown) => string } = {
@@ -67,9 +61,7 @@ export const helpers: Record<string, unknown> & { formatJson: (data: unknown) =>
   ...transfer,
   ...address,
   ...staking,
-<<<<<<< HEAD
   ...accountResource,
-=======
   ...query,
   ...broadcast,
   ...nodes,
@@ -81,7 +73,6 @@ export const helpers: Record<string, unknown> & { formatJson: (data: unknown) =>
   ...trongridClient,
   ...accountData,
   ...contractData,
->>>>>>> origin/dev/1.1.3-dev
   ...utils,
   // Specifically map formatJson from utils to helpers root as tools expect it there
   formatJson: utils.utils.formatJson,
