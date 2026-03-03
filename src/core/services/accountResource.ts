@@ -142,4 +142,58 @@ export async function getCanDelegatedMaxSize(
   }
 }
 
+/**
+ * Get delegated resource details between two addresses under Stake 2.0.
+ * Wraps TronWeb's trx.getDelegatedResourceV2 / walletsolidity.getdelegatedresourcev2.
+ */
+export async function getDelegatedResourceV2(
+  fromAddress: string,
+  toAddress: string,
+  network = "mainnet",
+) {
+  const tronWeb = getTronWeb(network);
+
+  try {
+    const res =
+      typeof (tronWeb.trx as any).getDelegatedResourceV2 === "function"
+        ? await (tronWeb.trx as any).getDelegatedResourceV2(fromAddress, toAddress, {
+            confirmed: true,
+          })
+        : await tronWeb.fullNode.request(
+            "walletsolidity/getdelegatedresourcev2",
+            {
+              fromAddress: tronWeb.address.toHex(fromAddress),
+              toAddress: tronWeb.address.toHex(toAddress),
+              visible: false,
+            },
+            "post",
+          );
+
+    const delegated = (res as any)?.delegatedResource || (Array.isArray(res) ? res : []);
+
+    // Normalize numeric fields to BigInt/string form for safety
+    const normalized = (delegated as any[]).map((item) => {
+      const bandwidth = (item as any).frozen_balance_for_bandwidth ?? 0;
+      const energy = (item as any).frozen_balance_for_energy ?? 0;
+      return {
+        from: item.from || fromAddress,
+        to: item.to || toAddress,
+        frozenBalanceForBandwidthSun: BigInt(bandwidth).toString(),
+        frozenBalanceForEnergySun: BigInt(energy).toString(),
+        expireTimeForBandwidth: item.expire_time_for_bandwidth ?? 0,
+        expireTimeForEnergy: item.expire_time_for_energy ?? 0,
+      };
+    });
+
+    return {
+      from: fromAddress,
+      to: toAddress,
+      delegatedResource: normalized,
+      raw: res,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to get delegated resource v2: ${error.message}`);
+  }
+}
+
 

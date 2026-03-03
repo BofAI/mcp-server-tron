@@ -42,6 +42,7 @@ vi.mock("../../src/core/services/index", async () => {
     getAvailableUnfreezeCount: vi.fn(),
     getCanWithdrawUnfreezeAmount: vi.fn(),
     getCanDelegatedMaxSize: vi.fn(),
+    getDelegatedResourceV2: vi.fn(),
   };
 });
 
@@ -69,7 +70,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 33 TRON tools", () => {
+    it("should register all 34 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -105,6 +106,7 @@ describe("TRON Tools Unit Tests", () => {
         "get_available_unfreeze_count",
         "get_can_withdraw_unfreeze_amount",
         "get_can_delegated_max_size",
+        "get_delegated_resource_v2",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -620,6 +622,37 @@ describe("TRON Tools Unit Tests", () => {
       expect(content.address).toBe("Taddress");
       expect(content.resource).toBe("ENERGY");
       expect(content.maxSizeSun).toBe("2000000");
+    });
+
+    it("get_delegated_resource_v2 should call getDelegatedResourceV2 service", async () => {
+      (services.getDelegatedResourceV2 as any).mockResolvedValue({
+        from: "Tfrom",
+        to: "Tto",
+        delegatedResource: [
+          {
+            from: "Tfrom",
+            to: "Tto",
+            frozenBalanceForBandwidthSun: "1000000",
+            frozenBalanceForEnergySun: "2000000",
+            expireTimeForBandwidth: 1700000000000,
+            expireTimeForEnergy: 1700000100000,
+          },
+        ],
+      });
+
+      const result = await registeredTools.get("get_delegated_resource_v2").handler({
+        fromAddress: "Tfrom",
+        toAddress: "Tto",
+        network: "nile",
+      });
+
+      expect(services.getDelegatedResourceV2).toHaveBeenCalledWith("Tfrom", "Tto", "nile");
+
+      const content = JSON.parse(result.content[0].text);
+      expect(content.from).toBe("Tfrom");
+      expect(content.to).toBe("Tto");
+      expect(Array.isArray(content.delegatedResource)).toBe(true);
+      expect(content.delegatedResource[0].frozenBalanceForBandwidthSun).toBe("1000000");
     });
   });
 });

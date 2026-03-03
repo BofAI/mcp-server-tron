@@ -1991,6 +1991,63 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     },
   );
 
+  registerTool(
+    "get_delegated_resource_v2",
+    {
+      description:
+        "Get delegated resource details (bandwidth and energy) between two addresses under Stake 2.0.",
+      inputSchema: {
+        fromAddress: z.string().describe("Delegator address (Base58 or hex)"),
+        toAddress: z.string().describe("Delegatee address (Base58 or hex)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Delegated Resource V2",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ fromAddress, toAddress, network = "mainnet" }) => {
+      try {
+        const result = await services.getDelegatedResourceV2(fromAddress, toAddress, network);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  from: result.from,
+                  to: result.to,
+                  delegatedResource: result.delegatedResource,
+                  message:
+                    "Delegated resource details between the two addresses, including bandwidth and energy stake information.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting delegated resource v2: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================
