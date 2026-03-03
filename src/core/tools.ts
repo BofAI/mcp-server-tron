@@ -1355,6 +1355,60 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     },
   );
 
+  registerTool(
+    "get_available_unfreeze_count",
+    {
+      description:
+        "Get remaining available unstake (unfreeze) operations for an address in Stake 2.0.",
+      inputSchema: {
+        address: z.string().describe("Wallet address (Base58 or hex)"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Available Unfreeze Count",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ address, network = "mainnet" }) => {
+      try {
+        const count = await services.getAvailableUnfreezeCount(address, network);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  address,
+                  availableUnfreezeCount: count,
+                  note:
+                    "Stake 2.0 allows up to 32 concurrent unstake operations. This value is the remaining quota.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting available unfreeze count: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================

@@ -32,6 +32,7 @@ vi.mock("../../src/core/services/index", async () => {
     unfreezeBalanceV2: vi.fn(),
     withdrawExpireUnfreeze: vi.fn(),
     cancelAllUnfreezeV2: vi.fn(),
+    getAvailableUnfreezeCount: vi.fn(),
   };
 });
 
@@ -59,7 +60,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 23 TRON tools", () => {
+    it("should register all 24 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -85,6 +86,7 @@ describe("TRON Tools Unit Tests", () => {
         "unfreeze_balance_v2",
         "withdraw_expire_unfreeze",
         "cancel_all_unfreeze_v2",
+        "get_available_unfreeze_count",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -389,6 +391,19 @@ describe("TRON Tools Unit Tests", () => {
       expect(services.cancelAllUnfreezeV2).toHaveBeenCalledWith("key", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx999");
+    });
+
+    it("get_available_unfreeze_count should call getAvailableUnfreezeCount service", async () => {
+      (services.getAvailableUnfreezeCount as any).mockResolvedValue(10);
+
+      const result = await registeredTools.get("get_available_unfreeze_count").handler({
+        address: "Taddress",
+        network: "nile",
+      });
+
+      expect(services.getAvailableUnfreezeCount).toHaveBeenCalledWith("Taddress", "nile");
+      const content = JSON.parse(result.content[0].text);
+      expect(content.availableUnfreezeCount).toBe(10);
     });
   });
 });

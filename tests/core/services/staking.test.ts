@@ -3,6 +3,7 @@ import {
   freezeBalanceV2,
   unfreezeBalanceV2,
   withdrawExpireUnfreeze,
+  getAvailableUnfreezeCount,
   cancelAllUnfreezeV2,
 } from "../../../src/core/services/staking.js";
 import { getConfiguredPrivateKey } from "../../../src/core/services/wallet.js";
@@ -58,6 +59,25 @@ describe("Staking Services Integration (Nile)", () => {
         console.log("Staking (withdraw) integration feedback:", error.message);
         expect(error.message).toContain("Failed to withdraw expire unfreeze");
       }
+    },
+    30000,
+  );
+
+  it.runIf(hasPrivateKey)(
+    "getAvailableUnfreezeCount should return a number",
+    async () => {
+      const privateKey = getConfiguredPrivateKey();
+      const address = process.env.TRON_ADDRESS;
+      // If TRON_ADDRESS is not set, fall back to deriving from private key via tronWeb in staking service,
+      // but here we just assert that the call succeeds when address is provided.
+      if (!address) {
+        console.log("Skipping getAvailableUnfreezeCount test: TRON_ADDRESS not configured");
+        return;
+      }
+
+      const result = await getAvailableUnfreezeCount(address, "nile");
+      expect(typeof result).toBe("number");
+      console.log(`Available unfreeze count: ${result}`);
     },
     30000,
   );

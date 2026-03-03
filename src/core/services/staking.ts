@@ -1,4 +1,4 @@
-import { getWallet } from "./clients.js";
+import { getTronWeb, getWallet } from "./clients.js";
 
 /**
  * Freeze TRX to get resources (Stake 2.0)
@@ -94,6 +94,34 @@ export async function withdrawExpireUnfreeze(privateKey: string, network = "main
     }
   } catch (error: any) {
     throw new Error(`Failed to withdraw expire unfreeze: ${error.message}`);
+  }
+}
+
+/**
+ * Get remaining available unstake (unfreeze) operations for an address (Stake 2.0)
+ * Uses /wallet/getavailableunfreezecount under the hood.
+ * @param address Wallet address (Base58 or hex)
+ * @param network Network name (mainnet, nile, shasta)
+ * @returns Remaining count of available unstake operations
+ */
+export async function getAvailableUnfreezeCount(address: string, network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+
+  try {
+    const ownerAddress = tronWeb.address.toHex(address);
+    const res = await tronWeb.fullNode.request(
+      "wallet/getavailableunfreezecount",
+      { owner_address: ownerAddress },
+      "post",
+    );
+
+    if (typeof res?.count !== "number") {
+      throw new Error(`Unexpected response from getavailableunfreezecount: ${JSON.stringify(res)}`);
+    }
+
+    return res.count;
+  } catch (error: any) {
+    throw new Error(`Failed to get available unfreeze count: ${error.message}`);
   }
 }
 
