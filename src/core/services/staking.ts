@@ -126,6 +126,48 @@ export async function getAvailableUnfreezeCount(address: string, network = "main
 }
 
 /**
+ * Get withdrawable unstaked amount for an address at a given timestamp (Stake 2.0)
+ * Uses /wallet/getcanwithdrawunfreezeamount under the hood.
+ * @param address Wallet address (Base58 or hex)
+ * @param network Network name (mainnet, nile, shasta)
+ * @param timestampMs Optional query timestamp in milliseconds. Defaults to current time.
+ * @returns Object containing withdrawable amount in Sun and the timestamp used
+ */
+export async function getCanWithdrawUnfreezeAmount(
+  address: string,
+  network = "mainnet",
+  timestampMs?: number,
+) {
+  const tronWeb = getTronWeb(network);
+
+  try {
+    const ownerAddress = tronWeb.address.toHex(address);
+    const ts = timestampMs ?? Date.now();
+
+    const res = await tronWeb.fullNode.request(
+      "wallet/getcanwithdrawunfreezeamount",
+      {
+        owner_address: ownerAddress,
+        timestamp: ts,
+      },
+      "post",
+    );
+
+    const rawAmount = (res as any)?.amount;
+    if (rawAmount === undefined || (typeof rawAmount !== "number" && typeof rawAmount !== "string")) {
+      throw new Error(
+        `Unexpected response from getcanwithdrawunfreezeamount: ${JSON.stringify(res)}`,
+      );
+    }
+
+    const amountSun = BigInt(rawAmount);
+    return { amountSun, timestampMs: ts };
+  } catch (error: any) {
+    throw new Error(`Failed to get can withdraw unfreeze amount: ${error.message}`);
+  }
+}
+
+/**
  * Cancel all unfreeze operations (Stake 2.0)
  * This will:
  * - Re-stake all unfreezing amounts still in the waiting period

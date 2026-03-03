@@ -1409,6 +1409,74 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
     },
   );
 
+  registerTool(
+    "get_can_withdraw_unfreeze_amount",
+    {
+      description:
+        "Get the withdrawable unstaked TRX amount for an address at a given timestamp in Stake 2.0.",
+      inputSchema: {
+        address: z.string().describe("Wallet address (Base58 or hex)"),
+        timestampMs: z
+          .string()
+          .optional()
+          .describe("Optional query timestamp in milliseconds. Defaults to current time."),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Can Withdraw Unfreeze Amount",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ address, timestampMs, network = "mainnet" }) => {
+      try {
+        const ts = timestampMs ? Number(timestampMs) : undefined;
+        const { amountSun, timestampMs: usedTs } = await services.getCanWithdrawUnfreezeAmount(
+          address,
+          network,
+          ts,
+        );
+
+        const amountTrx = services.utils.fromSun(amountSun.toString());
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  network,
+                  address,
+                  timestampMs: usedTs,
+                  amountSun: amountSun.toString(),
+                  amountTrx,
+                  message:
+                    "This is the amount of TRX currently withdrawable from Stake 2.0 unfreeze operations at the given timestamp.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting can withdraw unfreeze amount: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
   // ============================================================================
   // MESSAGE SIGNING TOOLS (Write operations)
   // ============================================================================

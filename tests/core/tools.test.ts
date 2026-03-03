@@ -33,6 +33,7 @@ vi.mock("../../src/core/services/index", async () => {
     withdrawExpireUnfreeze: vi.fn(),
     cancelAllUnfreezeV2: vi.fn(),
     getAvailableUnfreezeCount: vi.fn(),
+    getCanWithdrawUnfreezeAmount: vi.fn(),
   };
 });
 
@@ -60,7 +61,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 24 TRON tools", () => {
+    it("should register all 25 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -87,6 +88,7 @@ describe("TRON Tools Unit Tests", () => {
         "withdraw_expire_unfreeze",
         "cancel_all_unfreeze_v2",
         "get_available_unfreeze_count",
+        "get_can_withdraw_unfreeze_amount",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -404,6 +406,28 @@ describe("TRON Tools Unit Tests", () => {
       expect(services.getAvailableUnfreezeCount).toHaveBeenCalledWith("Taddress", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.availableUnfreezeCount).toBe(10);
+    });
+
+    it("get_can_withdraw_unfreeze_amount should call getCanWithdrawUnfreezeAmount service", async () => {
+      (services.getCanWithdrawUnfreezeAmount as any).mockResolvedValue({
+        amountSun: 1000000n,
+        timestampMs: 1700000000000,
+      });
+
+      const result = await registeredTools.get("get_can_withdraw_unfreeze_amount").handler({
+        address: "Taddress",
+        timestampMs: "1700000000000",
+        network: "nile",
+      });
+
+      expect(services.getCanWithdrawUnfreezeAmount).toHaveBeenCalledWith(
+        "Taddress",
+        "nile",
+        1700000000000,
+      );
+      const content = JSON.parse(result.content[0].text);
+      expect(content.amountSun).toBe("1000000");
+      expect(content.amountTrx).toBeDefined();
     });
   });
 });

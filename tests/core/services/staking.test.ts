@@ -4,6 +4,7 @@ import {
   unfreezeBalanceV2,
   withdrawExpireUnfreeze,
   getAvailableUnfreezeCount,
+  getCanWithdrawUnfreezeAmount,
   cancelAllUnfreezeV2,
 } from "../../../src/core/services/staking.js";
 import { getConfiguredPrivateKey } from "../../../src/core/services/wallet.js";
@@ -78,6 +79,25 @@ describe("Staking Services Integration (Nile)", () => {
       const result = await getAvailableUnfreezeCount(address, "nile");
       expect(typeof result).toBe("number");
       console.log(`Available unfreeze count: ${result}`);
+    },
+    30000,
+  );
+
+  it.runIf(hasPrivateKey)(
+    "getCanWithdrawUnfreezeAmount should return amount information",
+    async () => {
+      const address = process.env.TRON_ADDRESS;
+      if (!address) {
+        console.log("Skipping getCanWithdrawUnfreezeAmount test: TRON_ADDRESS not configured");
+        return;
+      }
+
+      const result = await getCanWithdrawUnfreezeAmount(address, "nile");
+      expect(typeof result.amountSun).toBe("bigint");
+      expect(typeof result.timestampMs).toBe("number");
+      console.log(
+        `Can withdraw unfreeze amount (sun): ${result.amountSun.toString()} at ts=${result.timestampMs}`,
+      );
     },
     30000,
   );
