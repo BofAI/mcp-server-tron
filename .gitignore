@@ -32,3 +32,8 @@ RELEASE_NOTES.md
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Environment variables (may contain private keys)
+.env
+.env.local
+.env.*.local

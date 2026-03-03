@@ -16,6 +16,8 @@ export * from "./nodes.js";
 export * from "./mempool.js";
 export * from "./events.js";
 export * from "./account.js";
+export * from "./governance.js";
+export * from "./proposals.js";
 export * from "./utils.js"; // Export utils as top level as well
 
 // Add a helper object for easier access to everything
@@ -36,9 +38,11 @@ import * as nodes from "./nodes.js";
 import * as mempool from "./mempool.js";
 import * as events from "./events.js";
 import * as account from "./account.js";
+import * as governance from "./governance.js";
+import * as proposals from "./proposals.js";
 
 // Re-export specific utils function as 'helpers' for backward compatibility with tools code
-export const helpers = {
+export const helpers: Record<string, unknown> & { formatJson: (data: unknown) => string } = {
   ...clients,
   ...wallet,
   ...balance,
@@ -55,6 +59,8 @@ export const helpers = {
   ...mempool,
   ...events,
   ...account,
+  ...governance,
+  ...proposals,
   ...utils,
   // Specifically map formatJson from utils to helpers root as tools expect it there
   formatJson: utils.utils.formatJson,
