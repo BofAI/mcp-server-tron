@@ -109,6 +109,39 @@ export async function getContract(contractAddress: string, network = "mainnet") 
 }
 
 /**
+ * Get high-level contract info: ABI, function list and raw metadata.
+ */
+export async function getContractInfo(contractAddress: string, network = "mainnet") {
+  try {
+    const tronWeb = getTronWeb(network);
+    const hexAddress = tronWeb.address.toHex(contractAddress);
+
+    // Use full node HTTP API: /wallet/getcontractinfo
+    const contract = await tronWeb.fullNode.request(
+      "wallet/getcontractinfo",
+      {
+        value: hexAddress,
+        visible: false,
+      },
+      "post",
+    );
+
+    const abi = contract?.abi?.entrys || [];
+    const functions = Array.isArray(abi) ? getReadableFunctions(abi) : [];
+
+    return {
+      address: contractAddress,
+      network,
+      abi,
+      functions,
+      contract,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to get contract info: ${error.message}`);
+  }
+}
+
+/**
  * Parse ABI (helper to ensure correct format for TronWeb if needed)
  */
 export function parseABI(abiJson: string | any[]): any[] {

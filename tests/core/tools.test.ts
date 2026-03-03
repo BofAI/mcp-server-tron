@@ -28,6 +28,7 @@ vi.mock("../../src/core/services/index", async () => {
     getTransactionInfo: vi.fn(),
     deployContract: vi.fn(),
     getContract: vi.fn(),
+    getContractInfo: vi.fn(),
     estimateEnergy: vi.fn(),
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
@@ -62,7 +63,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 26 TRON tools", () => {
+    it("should register all 27 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -78,6 +79,7 @@ describe("TRON Tools Unit Tests", () => {
         "get_transaction_info",
         "read_contract",
         "get_contract",
+        "get_contract_info",
         "multicall",
         "write_contract",
         "transfer_trx",
@@ -253,6 +255,27 @@ describe("TRON Tools Unit Tests", () => {
       expect(services.getContract).toHaveBeenCalledWith("addr", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.contract.contract_address).toBe("addr");
+    });
+
+    it("get_contract_info should call getContractInfo service and return ABI/functions", async () => {
+      (services.getContractInfo as any).mockResolvedValue({
+        address: "addr",
+        network: "nile",
+        abi: [{ type: "function", name: "balanceOf", inputs: [], outputs: [] }],
+        functions: ["balanceOf() -> ()"],
+        contract: { contract_address: "addr" },
+      });
+
+      const result = await registeredTools.get("get_contract_info").handler({
+        contractAddress: "addr",
+        network: "nile",
+      });
+
+      expect(services.getContractInfo).toHaveBeenCalledWith("addr", "nile");
+      const content = JSON.parse(result.content[0].text);
+      expect(content.address).toBe("addr");
+      expect(Array.isArray(content.abi)).toBe(true);
+      expect(Array.isArray(content.functions)).toBe(true);
     });
 
     it("multicall should execute batch calls and handle string version", async () => {

@@ -709,6 +709,48 @@ export function registerTRONTools(server: McpServer, options: { readOnly?: boole
   );
 
   registerTool(
+    "get_contract_info",
+    {
+      description:
+        "Get high-level information about a contract: ABI, readable function signatures, and raw metadata.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Get Contract Info",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, network = "mainnet" }) => {
+      try {
+        const info = await services.getContractInfo(contractAddress, network);
+        return {
+          content: [
+            {
+              type: "text",
+              text: services.helpers.formatJson(info),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting contract info: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
     "multicall",
     {
       description: "Execute multiple read-only functions in a single batch call.",
