@@ -31,6 +31,7 @@ vi.mock("../../src/core/services/index", async () => {
     freezeBalanceV2: vi.fn(),
     unfreezeBalanceV2: vi.fn(),
     withdrawExpireUnfreeze: vi.fn(),
+    cancelAllUnfreezeV2: vi.fn(),
   };
 });
 
@@ -58,7 +59,7 @@ describe("TRON Tools Unit Tests", () => {
   });
 
   describe("Registration", () => {
-    it("should register all 22 TRON tools", () => {
+    it("should register all 23 TRON tools", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
@@ -83,6 +84,7 @@ describe("TRON Tools Unit Tests", () => {
         "freeze_balance_v2",
         "unfreeze_balance_v2",
         "withdraw_expire_unfreeze",
+        "cancel_all_unfreeze_v2",
       ];
       expectedTools.forEach((tool) => {
         expect(registeredTools.has(tool)).toBe(true);
@@ -134,6 +136,7 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("deploy_contract")).toBe(false);
       expect(registeredTools.has("sign_message")).toBe(false);
       expect(registeredTools.has("freeze_balance_v2")).toBe(false);
+      expect(registeredTools.has("cancel_all_unfreeze_v2")).toBe(false);
 
       // get_wallet_address has requiresWallet: true, should be hidden
       expect(registeredTools.has("get_wallet_address")).toBe(false);
@@ -373,6 +376,19 @@ describe("TRON Tools Unit Tests", () => {
       expect(services.withdrawExpireUnfreeze).toHaveBeenCalledWith("key", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx789");
+    });
+
+    it("cancel_all_unfreeze_v2 should call cancelAllUnfreezeV2 service", async () => {
+      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
+      (services.cancelAllUnfreezeV2 as any).mockResolvedValue("tx999");
+
+      const result = await registeredTools.get("cancel_all_unfreeze_v2").handler({
+        network: "nile",
+      });
+
+      expect(services.cancelAllUnfreezeV2).toHaveBeenCalledWith("key", "nile");
+      const content = JSON.parse(result.content[0].text);
+      expect(content.txHash).toBe("tx999");
     });
   });
 });

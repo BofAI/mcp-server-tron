@@ -3,6 +3,7 @@ import {
   freezeBalanceV2,
   unfreezeBalanceV2,
   withdrawExpireUnfreeze,
+  cancelAllUnfreezeV2,
 } from "../../../src/core/services/staking.js";
 import { getConfiguredPrivateKey } from "../../../src/core/services/wallet.js";
 
@@ -56,6 +57,22 @@ describe("Staking Services Integration (Nile)", () => {
       } catch (error: any) {
         console.log("Staking (withdraw) integration feedback:", error.message);
         expect(error.message).toContain("Failed to withdraw expire unfreeze");
+      }
+    },
+    30000,
+  );
+
+  it.runIf(hasPrivateKey)(
+    "cancelAllUnfreezeV2 should attempt to cancel and return error or tx hash",
+    async () => {
+      const privateKey = getConfiguredPrivateKey();
+      try {
+        const result = await cancelAllUnfreezeV2(privateKey, "nile");
+        expect(typeof result).toBe("string");
+        console.log(`CancelAllUnfreezeV2 Tx ID: ${result}`);
+      } catch (error: any) {
+        console.log("Staking (cancelAllUnfreezeV2) integration feedback:", error.message);
+        expect(error.message).toContain("Failed to cancel all unfreeze V2");
       }
     },
     30000,

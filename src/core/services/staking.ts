@@ -96,3 +96,32 @@ export async function withdrawExpireUnfreeze(privateKey: string, network = "main
     throw new Error(`Failed to withdraw expire unfreeze: ${error.message}`);
   }
 }
+
+/**
+ * Cancel all unfreeze operations (Stake 2.0)
+ * This will:
+ * - Re-stake all unfreezing amounts still in the waiting period
+ * - Automatically withdraw all amounts whose unfreezing period has already expired
+ * @param privateKey The private key of the account
+ * @param network Network name (mainnet, nile, shasta)
+ * @returns Transaction hash
+ */
+export async function cancelAllUnfreezeV2(privateKey: string, network = "mainnet") {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const transaction = await tronWeb.transactionBuilder.cancelAllUnfreezeV2(
+      tronWeb.defaultAddress.base58 || undefined,
+    );
+    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`CancelAllUnfreezeV2 failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to cancel all unfreeze V2: ${error.message}`);
+  }
+}
