@@ -115,11 +115,11 @@ export async function getAvailableUnfreezeCount(address: string, network = "main
       "post",
     );
 
-    if (typeof res?.count !== "number") {
+    if (typeof (res as any)?.count !== "number") {
       throw new Error(`Unexpected response from getavailableunfreezecount: ${JSON.stringify(res)}`);
     }
 
-    return res.count;
+    return (res as any).count;
   } catch (error: any) {
     throw new Error(`Failed to get available unfreeze count: ${error.message}`);
   }
@@ -180,7 +180,7 @@ export async function cancelAllUnfreezeV2(privateKey: string, network = "mainnet
   const tronWeb = getWallet(privateKey, network);
 
   try {
-    const transaction = await tronWeb.transactionBuilder.cancelAllUnfreezeV2(
+    const transaction = await (tronWeb.transactionBuilder as any).cancelAllUnfreezeV2(
       tronWeb.defaultAddress.base58 || undefined,
     );
     const signedTx = await tronWeb.trx.sign(transaction, privateKey);

@@ -126,7 +126,7 @@ export async function getContractInfo(contractAddress: string, network = "mainne
       "post",
     );
 
-    const abi = contract?.abi?.entrys || [];
+    const abi = (contract as any)?.abi?.entrys || [];
     const functions = Array.isArray(abi) ? getReadableFunctions(abi) : [];
 
     return {

@@ -53,7 +53,12 @@ export async function getChainId(network = "mainnet"): Promise<number> {
 /**
  * Get current chain parameters (energy price, bandwidth price, etc.)
  */
-export async function getChainParameters(network = "mainnet") {
+export async function getChainParameters(network = "mainnet"): Promise<{
+  network: string;
+  energy_price_sun: number | undefined;
+  bandwidth_price_sun: number | undefined;
+  all_parameters: any[];
+}> {
   const tronWeb = getTronWeb(network);
   const parameters = await tronWeb.trx.getChainParameters();
 
