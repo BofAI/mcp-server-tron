@@ -49,3 +49,25 @@ export async function getChainId(network = "mainnet"): Promise<number> {
   if (network === "shasta") return 1;
   return 0;
 }
+
+/**
+ * Get current chain parameters (energy price, bandwidth price, etc.)
+ */
+export async function getChainParameters(network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  const parameters = await tronWeb.trx.getChainParameters();
+
+  const paramMap = new Map<string, number | undefined>();
+  for (const param of parameters) {
+    if (param.key) {
+      paramMap.set(param.key, param.value);
+    }
+  }
+
+  return {
+    network,
+    energy_price_sun: paramMap.get("getEnergyFee"),
+    bandwidth_price_sun: paramMap.get("getTransactionFee"),
+    all_parameters: parameters,
+  };
+}

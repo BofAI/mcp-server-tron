@@ -107,22 +107,7 @@ export function registerNetworkTools(registerTool: RegisterToolFn) {
     },
     async ({ network = "mainnet" }) => {
       try {
-        const tronWeb = services.getTronWeb(network);
-        const parameters = await tronWeb.trx.getChainParameters();
-
-        const paramMap = new Map<string, number | undefined>();
-        for (const param of parameters) {
-          if (param.key) {
-            paramMap.set(param.key, param.value);
-          }
-        }
-
-        const result = {
-          network,
-          energy_price_sun: paramMap.get("getEnergyFee"), // Energy unit price (sun per unit)
-          bandwidth_price_sun: paramMap.get("getTransactionFee"), // Bandwidth unit price (sun per byte)
-          all_parameters: parameters,
-        };
+        const result = await services.getChainParameters(network);
 
         return {
           content: [
