@@ -10,6 +10,7 @@ export * from "./address.js";
 export * from "./wallet.js";
 export * from "./multicall-abi.js";
 export * from "./staking.js";
+export * from "./accountResource.js";
 export * from "./query.js";
 export * from "./broadcast.js";
 export * from "./nodes.js";
@@ -35,6 +36,7 @@ import * as transfer from "./transfer.js";
 import * as utils from "./utils.js";
 import * as address from "./address.js";
 import * as staking from "./staking.js";
+import * as accountResource from "./accountResource.js";
 import * as query from "./query.js";
 import * as broadcast from "./broadcast.js";
 import * as nodes from "./nodes.js";
@@ -59,6 +61,7 @@ export const helpers: Record<string, unknown> & { formatJson: (data: unknown) =>
   ...transfer,
   ...address,
   ...staking,
+  ...accountResource,
   ...query,
   ...broadcast,
   ...nodes,

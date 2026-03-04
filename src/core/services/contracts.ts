@@ -96,6 +96,142 @@ export async function fetchContractABI(contractAddress: string, network = "mainn
 }
 
 /**
+ * Get full contract metadata from the chain (including bytecode and ABI if available)
+ */
+export async function getContract(contractAddress: string, network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  try {
+    const contract = await tronWeb.trx.getContract(contractAddress);
+    return contract;
+  } catch (error: any) {
+    throw new Error(`Failed to get contract: ${error.message}`);
+  }
+}
+
+/**
+ * Get high-level contract info: ABI, function list and raw metadata.
+ */
+export async function getContractInfo(contractAddress: string, network = "mainnet") {
+  try {
+    const tronWeb = getTronWeb(network);
+    const hexAddress = tronWeb.address.toHex(contractAddress);
+
+    // Use full node HTTP API: /wallet/getcontractinfo
+    const contract = await tronWeb.fullNode.request(
+      "wallet/getcontractinfo",
+      {
+        value: hexAddress,
+        visible: false,
+      },
+      "post",
+    );
+
+    const abi = contract?.abi?.entrys || [];
+    const functions = Array.isArray(abi) ? getReadableFunctions(abi) : [];
+
+    return {
+      address: contractAddress,
+      network,
+      abi,
+      functions,
+      contract,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to get contract info: ${error.message}`);
+  }
+}
+
+/**
+ * Update contract setting: consume_user_resource_percent (user pay ratio)
+ */
+export async function updateSetting(
+  privateKey: string,
+  contractAddress: string,
+  consumeUserResourcePercent: number,
+  network = "mainnet",
+) {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
+    const tx = await tronWeb.transactionBuilder.updateSetting(
+      contractAddress,
+      consumeUserResourcePercent,
+      ownerAddress,
+    );
+
+    const signedTx = await tronWeb.trx.sign(tx, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`UpdateSetting failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to update setting: ${error.message}`);
+  }
+}
+
+/**
+ * Update contract originEnergyLimit (max energy the contract creator will pay per execution)
+ */
+export async function updateEnergyLimit(
+  privateKey: string,
+  contractAddress: string,
+  originEnergyLimit: number,
+  network = "mainnet",
+) {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
+    const tx = await tronWeb.transactionBuilder.updateEnergyLimit(
+      contractAddress,
+      originEnergyLimit,
+      ownerAddress,
+    );
+
+    const signedTx = await tronWeb.trx.sign(tx, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`UpdateEnergyLimit failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to update energy limit: ${error.message}`);
+  }
+}
+
+/**
+ * Clear the ABI of a contract on-chain.
+ * This removes the ABI metadata associated with the contract (ClearABIContract).
+ */
+export async function clearABI(
+  privateKey: string,
+  contractAddress: string,
+  network = "mainnet",
+) {
+  const tronWeb = getWallet(privateKey, network);
+
+  try {
+    const tx = await tronWeb.transactionBuilder.clearABI(contractAddress);
+    const signedTx = await tronWeb.trx.sign(tx, privateKey);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if (result.result) {
+      return result.txid;
+    } else {
+      throw new Error(`ClearABI failed: ${JSON.stringify(result)}`);
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to clear ABI: ${error.message}`);
+  }
+}
+
+/**
  * Parse ABI (helper to ensure correct format for TronWeb if needed)
  */
 export function parseABI(abiJson: string | any[]): any[] {
