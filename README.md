@@ -152,17 +152,26 @@ npm run start:http
 
 ### Testing
 
-The project includes a comprehensive test suite with unit tests and integration tests (using the Nile network).
+The project includes a comprehensive test suite with unit tests and integration tests (using the Nile testnet).
 
 ```bash
 # Run all tests
 npm test
 
-# Run specific test suites
-npx vitest tests/core/tools.test.ts          # Unit tests for tools
-npx vitest tests/core/services/multicall.test.ts # Multicall integration
-npx vitest tests/core/services/services.test.ts # Services integration
+# Unit tests (mocked services, no network)
+npx vitest tests/core/tools.test.ts                    # All MCP tools registration & handlers
+npx vitest tests/core/services/contracts.test.ts       # Contract services
+npx vitest tests/core/services/accountResource.test.ts # Account resource services
+npx vitest tests/core/services/staking.test.ts         # Staking services
+
+# Integration tests (real Nile RPC; write tests require TRON_PRIVATE_KEY)
+npx vitest tests/core/tools_integration.test.ts        # Full tool flow on Nile
+npx vitest tests/core/services/multicall.test.ts       # Multicall integration
+npx vitest tests/core/services/services.test.ts        # Services integration
 ```
+
+- **Unit tests** use mocks and do not need network or wallet.
+- **Integration tests** (`tools_integration.test.ts`) call Nile RPC; most cases are read-only. Tests that broadcast transactions (e.g. `vote_witness`, `withdraw_balance`) run only when `TRON_PRIVATE_KEY` is set in the environment and are skipped otherwise.
 
 ### Client Configuration
 
@@ -325,13 +334,19 @@ Opencode:
 
 #### Smart Contracts
 
-| Tool Name         | Description                                       | Key Parameters                                                |
-| :---------------- | :------------------------------------------------ | :------------------------------------------------------------ |
-| `read_contract`   | Call read-only (`view`/`pure`) functions.          | `contractAddress`, `functionName`, `args`, `network`          |
-| `multicall`       | Execute multiple read calls in one batch.          | `calls`, `network`                                            |
-| `write_contract`  | Execute state-changing contract functions.         | `contractAddress`, `functionName`, `args`, `value`, `network` |
-| `deploy_contract` | Deploy a smart contract with ABI and bytecode.     | `abi`, `bytecode`, `args`, `network`                          |
-| `estimate_energy` | Estimate energy consumption for a contract call.   | `address`, `functionName`, `abi`, `network`                   |
+| Tool Name            | Description                                               | Key Parameters                                                |
+| :------------------- | :-------------------------------------------------------- | :------------------------------------------------------------ |
+| `read_contract`     | Call read-only (`view`/`pure`) functions.                  | `contractAddress`, `functionName`, `args`, `network`          |
+| `get_contract`      | Get raw contract metadata (ABI, bytecode) from chain.    | `contractAddress`, `network`                                 |
+| `get_contract_info` | Get ABI, function list and raw metadata.                  | `contractAddress`, `network`                                  |
+| `fetch_contract_abi`| Fetch ABI entry array for verified contracts.             | `contractAddress`, `network`                                  |
+| `multicall`         | Execute multiple read calls in one batch.                 | `calls`, `network`                                            |
+| `write_contract`    | Execute state-changing contract functions.                | `contractAddress`, `functionName`, `args`, `value`, `network` |
+| `deploy_contract`   | Deploy a smart contract with ABI and bytecode.           | `abi`, `bytecode`, `args`, `network`                          |
+| `estimate_energy`   | Estimate energy consumption for a contract call.         | `address`, `functionName`, `abi`, `network`                   |
+| `update_contract_setting` | Update consume_user_resource_percent (creator only). | `contractAddress`, `consumeUserResourcePercent`, `network`     |
+| `update_energy_limit`    | Update originEnergyLimit (creator only).             | `contractAddress`, `originEnergyLimit`, `network`              |
+| `clear_abi`         | Clear on-chain ABI metadata (creator only).               | `contractAddress`, `network`                                  |
 
 #### Account Management
 
@@ -351,11 +366,24 @@ Opencode:
 
 #### Staking (Stake 2.0)
 
-| Tool Name                   | Description                                          | Key Parameters                |
-| :-------------------------- | :--------------------------------------------------- | :---------------------------- |
-| `freeze_balance_v2`         | Freeze TRX to get resources (BANDWIDTH/ENERGY).      | `amount`, `resource`, `network` |
-| `unfreeze_balance_v2`       | Unfreeze TRX to release resources.                   | `amount`, `resource`, `network` |
-| `withdraw_expire_unfreeze`  | Withdraw expired unfrozen balance back to available.  | `network`                     |
+| Tool Name                       | Description                                                       | Key Parameters                  |
+| :------------------------------ | :---------------------------------------------------------------- | :----------------------------- |
+| `freeze_balance_v2`             | Freeze TRX to get resources (BANDWIDTH/ENERGY).                   | `amount`, `resource`, `network` |
+| `unfreeze_balance_v2`           | Unfreeze TRX to release resources.                               | `amount`, `resource`, `network` |
+| `withdraw_expire_unfreeze`      | Withdraw expired unfrozen balance back to available.             | `network`                      |
+| `cancel_all_unfreeze_v2`        | Re-stake pending unfreezes; withdraw expired ones.               | `network`                      |
+| `get_available_unfreeze_count`  | Get remaining unstake operation quota (max 32).                  | `address`, `network`           |
+| `get_can_withdraw_unfreeze_amount` | Get withdrawable TRX from unfreeze at a timestamp.            | `address`, `timestampMs`, `network` |
+
+#### Account resource (Stake 2.0 delegation)
+
+| Tool Name                                | Description                                                    | Key Parameters                                    |
+| :--------------------------------------- | :------------------------------------------------------------- | :----------------------------------------------- |
+| `delegate_resource`                      | Delegate BANDWIDTH/ENERGY to another address.                   | `receiverAddress`, `amount`, `resource`, `network` |
+| `undelegate_resource`                   | Revoke delegated resources.                                   | `receiverAddress`, `amount`, `resource`, `network` |
+| `get_can_delegated_max_size`             | Get max delegatable amount for an address.                     | `address`, `resource`, `network`                  |
+| `get_delegated_resource_v2`              | Get delegation details between two addresses.                  | `fromAddress`, `toAddress`, `network`             |
+| `get_delegated_resource_account_index_v2`| Get who delegated to/from an address.                          | `address`, `network`                             |
 
 #### Signing & Security
 

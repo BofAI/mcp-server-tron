@@ -29,6 +29,7 @@ vi.mock("../../src/core/services/index", async () => {
     deployContract: vi.fn(),
     getContract: vi.fn(),
     getContractInfo: vi.fn(),
+    fetchContractABI: vi.fn(),
     updateSetting: vi.fn(),
     updateEnergyLimit: vi.fn(),
     clearABI: vi.fn(),
@@ -145,6 +146,7 @@ describe("TRON Tools Unit Tests", () => {
         "read_contract",
         "get_contract",
         "get_contract_info",
+        "fetch_contract_abi",
         "multicall",
         "update_contract_setting",
         "update_energy_limit",
@@ -550,6 +552,35 @@ describe("TRON Tools Unit Tests", () => {
       expect(content.address).toBe("addr");
       expect(Array.isArray(content.abi)).toBe(true);
       expect(Array.isArray(content.functions)).toBe(true);
+    });
+
+    it("fetch_contract_abi should call fetchContractABI service and return ABI", async () => {
+      const mockAbi = [{ type: "function", name: "balanceOf", inputs: [], outputs: [] }];
+      (services.fetchContractABI as any).mockResolvedValue(mockAbi);
+
+      const result = await registeredTools.get("fetch_contract_abi").handler({
+        contractAddress: "Tcontract",
+        network: "nile",
+      });
+
+      expect(services.fetchContractABI).toHaveBeenCalledWith("Tcontract", "nile");
+      const content = JSON.parse(result.content[0].text);
+      expect(content.network).toBe("nile");
+      expect(content.contractAddress).toBe("Tcontract");
+      expect(Array.isArray(content.abi)).toBe(true);
+      expect(content.abi).toEqual(mockAbi);
+    });
+
+    it("fetch_contract_abi should return error on failure", async () => {
+      (services.fetchContractABI as any).mockRejectedValue(new Error("ABI not found"));
+
+      const result = await registeredTools.get("fetch_contract_abi").handler({
+        contractAddress: "Tunknown",
+        network: "mainnet",
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Error fetching contract ABI");
     });
 
     it("multicall should execute batch calls and handle string version", async () => {

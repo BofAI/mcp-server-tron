@@ -170,6 +170,52 @@ export function registerContractTools(registerTool: RegisterToolFn) {
   );
 
   registerTool(
+    "fetch_contract_abi",
+    {
+      description:
+        "Fetch contract ABI from the chain (for verified contracts). Returns the ABI entry array.",
+      inputSchema: {
+        contractAddress: z.string().describe("The contract address"),
+        network: z.string().optional().describe("Network name. Defaults to mainnet."),
+      },
+      annotations: {
+        title: "Fetch Contract ABI",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async ({ contractAddress, network = "mainnet" }) => {
+      try {
+        const abi = await services.fetchContractABI(contractAddress, network);
+        return {
+          content: [
+            {
+              type: "text",
+              text: services.helpers.formatJson({
+                network,
+                contractAddress,
+                abi,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching contract ABI: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerTool(
     "multicall",
     {
       description: "Execute multiple read-only functions in a single batch call.",
