@@ -8,8 +8,10 @@ vi.mock("../../src/core/services/index", async () => {
   const actual = await vi.importActual("../../src/core/services/index");
   return {
     ...(actual as any),
-    getWalletAddressFromKey: vi.fn(),
-    getConfiguredPrivateKey: vi.fn(),
+    getOwnerAddress: vi.fn(),
+    getActiveWalletId: vi.fn(),
+    listAgentWallets: vi.fn(),
+    selectWallet: vi.fn(),
     isWalletConfigured: vi.fn(),
     getChainId: vi.fn(),
     getBlockNumber: vi.fn(),
@@ -133,6 +135,8 @@ describe("TRON Tools Unit Tests", () => {
       // already registered in beforeEach with isWalletConfigured=true
       const expectedTools = [
         "get_wallet_address",
+        "list_wallets",
+        "select_wallet",
         "get_chain_info",
         "get_supported_networks",
         "get_chain_parameters",
@@ -340,8 +344,10 @@ describe("TRON Tools Unit Tests", () => {
       expect(registeredTools.has("approve_proposal")).toBe(false);
       expect(registeredTools.has("delete_proposal")).toBe(false);
 
-      // get_wallet_address has requiresWallet: true, should be hidden
+      // Wallet management tools have requiresWallet: true, should be hidden
       expect(registeredTools.has("get_wallet_address")).toBe(false);
+      expect(registeredTools.has("list_wallets")).toBe(false);
+      expect(registeredTools.has("select_wallet")).toBe(false);
 
       // Pure read tools should STILL be registered
       expect(registeredTools.has("get_balance")).toBe(true);
@@ -394,12 +400,58 @@ describe("TRON Tools Unit Tests", () => {
 
   describe("Wallet & Address Tools", () => {
     it("get_wallet_address should return configured address", async () => {
-      (services.getWalletAddressFromKey as any).mockReturnValue(
+      (services.getOwnerAddress as any).mockResolvedValue(
         "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
       );
       const result = await registeredTools.get("get_wallet_address").handler({});
       const content = JSON.parse(result.content[0].text);
       expect(content.address).toBe("T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb");
+    });
+
+    it("list_wallets should return wallet list with active ID", async () => {
+      (services.listAgentWallets as any).mockResolvedValue([
+        { id: "default", type: "env_configured", address: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb" },
+      ]);
+      (services.getActiveWalletId as any).mockReturnValue("default");
+
+      const result = await registeredTools.get("list_wallets").handler({});
+      const content = JSON.parse(result.content[0].text);
+      expect(content.activeWalletId).toBe("default");
+      expect(content.wallets).toHaveLength(1);
+      expect(content.wallets[0].id).toBe("default");
+      expect(content.wallets[0].address).toBe("T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb");
+    });
+
+    it("list_wallets should handle errors gracefully", async () => {
+      (services.listAgentWallets as any).mockRejectedValue(new Error("Provider not initialized"));
+
+      const result = await registeredTools.get("list_wallets").handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Provider not initialized");
+    });
+
+    it("select_wallet should switch active wallet", async () => {
+      (services.selectWallet as any).mockResolvedValue({
+        id: "wallet-2",
+        address: "TNewSwitchedAddress",
+      });
+
+      const result = await registeredTools.get("select_wallet").handler({ walletId: "wallet-2" });
+      const content = JSON.parse(result.content[0].text);
+      expect(content.id).toBe("wallet-2");
+      expect(content.address).toBe("TNewSwitchedAddress");
+      expect(content.message).toContain("Wallet switched");
+      expect(services.selectWallet).toHaveBeenCalledWith("wallet-2");
+    });
+
+    it("select_wallet should return error in legacy mode", async () => {
+      (services.selectWallet as any).mockRejectedValue(
+        new Error("select_wallet is not available in legacy mode"),
+      );
+
+      const result = await registeredTools.get("select_wallet").handler({ walletId: "some-id" });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("not available in legacy mode");
     });
 
     it("convert_address should handle hex to base58", async () => {
@@ -613,7 +665,6 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("transfer_trx should send signed transaction", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
       (services.transferTRX as any).mockResolvedValue("txhash");
       const result = await registeredTools.get("transfer_trx").handler({ to: "to", amount: "1" });
       const content = JSON.parse(result.content[0].text);
@@ -628,7 +679,6 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("deploy_contract should call deployContract service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
       (services.deployContract as any).mockResolvedValue({
         txID: "tx123",
         contractAddress: "Taddr",
@@ -641,7 +691,6 @@ describe("TRON Tools Unit Tests", () => {
       });
 
       expect(services.deployContract).toHaveBeenCalledWith(
-        "key",
         expect.objectContaining({
           bytecode: "0x123",
         }),
@@ -653,8 +702,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("update_contract_setting should call updateSetting service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.getOwnerAddress as any).mockResolvedValue("Towner");
       (services.updateSetting as any).mockResolvedValue("tx_update");
 
       const result = await registeredTools.get("update_contract_setting").handler({
@@ -663,15 +711,14 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.updateSetting).toHaveBeenCalledWith("key", "Tcontract", 50, "nile");
+      expect(services.updateSetting).toHaveBeenCalledWith("Tcontract", 50, "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx_update");
       expect(content.consumeUserResourcePercent).toBe(50);
     });
 
     it("update_energy_limit should call updateEnergyLimit service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.getOwnerAddress as any).mockResolvedValue("Towner");
       (services.updateEnergyLimit as any).mockResolvedValue("tx_energy");
 
       const result = await registeredTools.get("update_energy_limit").handler({
@@ -681,7 +728,6 @@ describe("TRON Tools Unit Tests", () => {
       });
 
       expect(services.updateEnergyLimit).toHaveBeenCalledWith(
-        "key",
         "Tcontract",
         10000000,
         "nile",
@@ -692,8 +738,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("clear_abi should call clearABI service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.getOwnerAddress as any).mockResolvedValue("Towner");
       (services.clearABI as any).mockResolvedValue("tx_clear");
 
       const result = await registeredTools.get("clear_abi").handler({
@@ -701,15 +746,14 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.clearABI).toHaveBeenCalledWith("key", "Tcontract", "nile");
+      expect(services.clearABI).toHaveBeenCalledWith("Tcontract", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx_clear");
       expect(content.contractAddress).toBe("Tcontract");
     });
 
     it("delegate_resource should call delegateResource service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.getOwnerAddress as any).mockResolvedValue("Towner");
       (services.delegateResource as any).mockResolvedValue("tx_delegate");
 
       const result = await registeredTools.get("delegate_resource").handler({
@@ -722,7 +766,6 @@ describe("TRON Tools Unit Tests", () => {
       });
 
       expect(services.delegateResource).toHaveBeenCalledWith(
-        "key",
         {
           amount: 1000000,
           receiverAddress: "Treceiver",
@@ -743,8 +786,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("undelegate_resource should call undelegateResource service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Towner");
+      (services.getOwnerAddress as any).mockResolvedValue("Towner");
       (services.undelegateResource as any).mockResolvedValue("tx_undelegate");
 
       const result = await registeredTools.get("undelegate_resource").handler({
@@ -755,7 +797,6 @@ describe("TRON Tools Unit Tests", () => {
       });
 
       expect(services.undelegateResource).toHaveBeenCalledWith(
-        "key",
         {
           amount: 500000,
           receiverAddress: "Treceiver",
@@ -801,7 +842,6 @@ describe("TRON Tools Unit Tests", () => {
 
   describe("Staking Tools", () => {
     it("freeze_balance_v2 should call freezeBalanceV2 service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
       (services.freezeBalanceV2 as any).mockResolvedValue("tx123");
 
       const result = await registeredTools.get("freeze_balance_v2").handler({
@@ -809,13 +849,12 @@ describe("TRON Tools Unit Tests", () => {
         resource: "ENERGY",
       });
 
-      expect(services.freezeBalanceV2).toHaveBeenCalledWith("key", "1000000", "ENERGY", "mainnet");
+      expect(services.freezeBalanceV2).toHaveBeenCalledWith("1000000", "ENERGY", "mainnet");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx123");
     });
 
     it("unfreeze_balance_v2 should call unfreezeBalanceV2 service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
       (services.unfreezeBalanceV2 as any).mockResolvedValue("tx456");
 
       const result = await registeredTools.get("unfreeze_balance_v2").handler({
@@ -824,33 +863,31 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.unfreezeBalanceV2).toHaveBeenCalledWith("key", "500000", "BANDWIDTH", "nile");
+      expect(services.unfreezeBalanceV2).toHaveBeenCalledWith("500000", "BANDWIDTH", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx456");
     });
 
     it("withdraw_expire_unfreeze should call withdrawExpireUnfreeze service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
       (services.withdrawExpireUnfreeze as any).mockResolvedValue("tx789");
 
       const result = await registeredTools.get("withdraw_expire_unfreeze").handler({
         network: "nile",
       });
 
-      expect(services.withdrawExpireUnfreeze).toHaveBeenCalledWith("key", "nile");
+      expect(services.withdrawExpireUnfreeze).toHaveBeenCalledWith("nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx789");
     });
 
     it("cancel_all_unfreeze_v2 should call cancelAllUnfreezeV2 service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
       (services.cancelAllUnfreezeV2 as any).mockResolvedValue("tx999");
 
       const result = await registeredTools.get("cancel_all_unfreeze_v2").handler({
         network: "nile",
       });
 
-      expect(services.cancelAllUnfreezeV2).toHaveBeenCalledWith("key", "nile");
+      expect(services.cancelAllUnfreezeV2).toHaveBeenCalledWith("nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("tx999");
     });
@@ -1435,8 +1472,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("create_account should activate a new address", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.getOwnerAddress as any).mockResolvedValue("Tsender");
       (services.createAccount as any).mockResolvedValue("txhash123");
       const result = await registeredTools.get("create_account").handler({
         address: "Tnewaddr",
@@ -1450,8 +1486,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("update_account should set account name", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.getOwnerAddress as any).mockResolvedValue("Tsender");
       (services.updateAccount as any).mockResolvedValue("txhash456");
       const result = await registeredTools.get("update_account").handler({
         accountName: "MyAccount",
@@ -1464,8 +1499,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("account_permission_update should update permissions", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("Tsender");
+      (services.getOwnerAddress as any).mockResolvedValue("Tsender");
       (services.updateAccountPermissions as any).mockResolvedValue("txhash789");
       const result = await registeredTools.get("account_permission_update").handler({
         ownerPermission: {
@@ -1590,8 +1624,7 @@ describe("TRON Tools Unit Tests", () => {
 
   describe("Governance Tools (Write)", () => {
     it("create_witness should call createWitness service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.createWitness as any).mockResolvedValue("txWitness1");
 
       const result = await registeredTools.get("create_witness").handler({
@@ -1599,15 +1632,14 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.createWitness).toHaveBeenCalledWith("key", "https://example.com", "nile");
+      expect(services.createWitness).toHaveBeenCalledWith("https://example.com", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txWitness1");
       expect(content.url).toBe("https://example.com");
     });
 
     it("create_witness should return error on failure", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.createWitness as any).mockRejectedValue(new Error("insufficient balance"));
 
       const result = await registeredTools.get("create_witness").handler({
@@ -1619,8 +1651,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("update_witness should call updateWitness service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.updateWitness as any).mockResolvedValue("txUpdate1");
 
       const result = await registeredTools.get("update_witness").handler({
@@ -1628,14 +1659,13 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.updateWitness).toHaveBeenCalledWith("key", "https://new-url.com", "nile");
+      expect(services.updateWitness).toHaveBeenCalledWith("https://new-url.com", "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txUpdate1");
     });
 
     it("vote_witness should call voteWitness service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.voteWitness as any).mockResolvedValue("txVote1");
 
       const votes = [
@@ -1647,27 +1677,25 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.voteWitness).toHaveBeenCalledWith("key", votes, "nile");
+      expect(services.voteWitness).toHaveBeenCalledWith(votes, "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txVote1");
       expect(content.votes).toEqual(votes);
     });
 
     it("withdraw_balance should call withdrawBalance service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.withdrawBalance as any).mockResolvedValue("txWithdraw1");
 
       const result = await registeredTools.get("withdraw_balance").handler({ network: "nile" });
 
-      expect(services.withdrawBalance).toHaveBeenCalledWith("key", "nile");
+      expect(services.withdrawBalance).toHaveBeenCalledWith("nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txWithdraw1");
     });
 
     it("update_brokerage should call updateBrokerage service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.updateBrokerage as any).mockResolvedValue("txBrok1");
 
       const result = await registeredTools.get("update_brokerage").handler({
@@ -1675,7 +1703,7 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.updateBrokerage).toHaveBeenCalledWith("key", 30, "nile");
+      expect(services.updateBrokerage).toHaveBeenCalledWith(30, "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txBrok1");
       expect(content.brokerage).toBe(30);
@@ -1719,8 +1747,7 @@ describe("TRON Tools Unit Tests", () => {
 
   describe("Proposal Tools (Write)", () => {
     it("create_proposal should call createProposal service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.createProposal as any).mockResolvedValue("txProp1");
 
       const result = await registeredTools.get("create_proposal").handler({
@@ -1728,14 +1755,13 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.createProposal).toHaveBeenCalledWith("key", { 6: 100 }, "nile");
+      expect(services.createProposal).toHaveBeenCalledWith({ 6: 100 }, "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txProp1");
     });
 
     it("create_proposal should return error on failure", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.createProposal as any).mockRejectedValue(new Error("not an SR"));
 
       const result = await registeredTools.get("create_proposal").handler({
@@ -1747,8 +1773,7 @@ describe("TRON Tools Unit Tests", () => {
     });
 
     it("approve_proposal should call approveProposal service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.approveProposal as any).mockResolvedValue("txApprove1");
 
       const result = await registeredTools.get("approve_proposal").handler({
@@ -1757,15 +1782,14 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.approveProposal).toHaveBeenCalledWith("key", 5, true, "nile");
+      expect(services.approveProposal).toHaveBeenCalledWith(5, true, "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txApprove1");
       expect(content.approve).toBe(true);
     });
 
     it("approve_proposal should handle disapproval", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.approveProposal as any).mockResolvedValue("txDisapprove1");
 
       const result = await registeredTools.get("approve_proposal").handler({
@@ -1773,15 +1797,14 @@ describe("TRON Tools Unit Tests", () => {
         approve: false,
       });
 
-      expect(services.approveProposal).toHaveBeenCalledWith("key", 3, false, "mainnet");
+      expect(services.approveProposal).toHaveBeenCalledWith(3, false, "mainnet");
       const content = JSON.parse(result.content[0].text);
       expect(content.approve).toBe(false);
       expect(content.message).toContain("disapproved");
     });
 
     it("delete_proposal should call deleteProposal service", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.deleteProposal as any).mockResolvedValue("txDel1");
 
       const result = await registeredTools.get("delete_proposal").handler({
@@ -1789,15 +1812,14 @@ describe("TRON Tools Unit Tests", () => {
         network: "nile",
       });
 
-      expect(services.deleteProposal).toHaveBeenCalledWith("key", 7, "nile");
+      expect(services.deleteProposal).toHaveBeenCalledWith(7, "nile");
       const content = JSON.parse(result.content[0].text);
       expect(content.txHash).toBe("txDel1");
       expect(content.proposalId).toBe(7);
     });
 
     it("delete_proposal should return error on failure", async () => {
-      (services.getConfiguredPrivateKey as any).mockReturnValue("key");
-      (services.getWalletAddressFromKey as any).mockReturnValue("TMyAddr");
+      (services.getOwnerAddress as any).mockResolvedValue("TMyAddr");
       (services.deleteProposal as any).mockRejectedValue(new Error("not the proposer"));
 
       const result = await registeredTools.get("delete_proposal").handler({

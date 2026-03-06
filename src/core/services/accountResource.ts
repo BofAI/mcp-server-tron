@@ -1,11 +1,11 @@
-import { getTronWeb, getWallet } from "./clients.js";
+import { getTronWeb } from "./clients.js";
+import { getOwnerAddress, buildSignBroadcast } from "./agent-wallet.js";
 
 /**
  * Delegate staked resources (BANDWIDTH or ENERGY) to another address.
  * Wraps TronWeb's transactionBuilder.delegateResource.
  */
 export async function delegateResource(
-  privateKey: string,
   params: {
     amount: number;
     receiverAddress: string;
@@ -15,14 +15,10 @@ export async function delegateResource(
   },
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
-    if (!ownerAddress) {
-      throw new Error("Owner address is not available from wallet");
-    }
-
     const {
       amount,
       receiverAddress,
@@ -40,15 +36,7 @@ export async function delegateResource(
       lockPeriod,
       {},
     );
-
-    const signedTx = await tronWeb.trx.sign(tx, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`DelegateResource failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(tx as any, network);
   } catch (error: any) {
     throw new Error(`Failed to delegate resource: ${error.message}`);
   }
@@ -59,7 +47,6 @@ export async function delegateResource(
  * Wraps TronWeb's transactionBuilder.undelegateResource.
  */
 export async function undelegateResource(
-  privateKey: string,
   params: {
     amount: number;
     receiverAddress: string;
@@ -67,14 +54,10 @@ export async function undelegateResource(
   },
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
-    if (!ownerAddress) {
-      throw new Error("Owner address is not available from wallet");
-    }
-
     const { amount, receiverAddress, resource } = params;
 
     const tx = await tronWeb.transactionBuilder.undelegateResource(
@@ -84,15 +67,7 @@ export async function undelegateResource(
       ownerAddress,
       {},
     );
-
-    const signedTx = await tronWeb.trx.sign(tx, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`UnDelegateResource failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(tx as any, network);
   } catch (error: any) {
     throw new Error(`Failed to undelegate resource: ${error.message}`);
   }
@@ -230,5 +205,3 @@ export async function getDelegatedResourceAccountIndexV2(
     throw new Error(`Failed to get delegated resource account index v2: ${error.message}`);
   }
 }
-
-

@@ -7,19 +7,18 @@ import {
   getCanWithdrawUnfreezeAmount,
   cancelAllUnfreezeV2,
 } from "../../../src/core/services/staking.js";
-import { getConfiguredPrivateKey } from "../../../src/core/services/wallet.js";
 
 describe("Staking Services Integration (Nile)", () => {
-  // Only run if private key is provided via environment variables
-  const hasPrivateKey = !!process.env.TRON_PRIVATE_KEY || !!process.env.TRON_MNEMONIC;
+  // Only run if wallet is configured (agent-wallet or legacy env vars)
+  const hasWallet = !!process.env.TRON_PRIVATE_KEY || !!process.env.TRON_MNEMONIC
+    || !!(process.env.AGENT_WALLET_DIR && process.env.AGENT_WALLET_PASSWORD);
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "freezeBalanceV2 should attempt to freeze and return error or tx hash",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       try {
         // Small amount to minimize impact if it actually executes
-        const result = await freezeBalanceV2(privateKey, 1000000, "BANDWIDTH", "nile");
+        const result = await freezeBalanceV2("1000000", "BANDWIDTH", "nile");
         expect(typeof result).toBe("string");
         console.log(`Freeze Tx ID: ${result}`);
       } catch (error: any) {
@@ -32,12 +31,11 @@ describe("Staking Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "unfreezeBalanceV2 should attempt to unfreeze and return error or tx hash",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       try {
-        const result = await unfreezeBalanceV2(privateKey, 1000000, "BANDWIDTH", "nile");
+        const result = await unfreezeBalanceV2("1000000", "BANDWIDTH", "nile");
         expect(typeof result).toBe("string");
         console.log(`Unfreeze Tx ID: ${result}`);
       } catch (error: any) {
@@ -48,12 +46,11 @@ describe("Staking Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "withdrawExpireUnfreeze should attempt to withdraw and return error or tx hash",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       try {
-        const result = await withdrawExpireUnfreeze(privateKey, "nile");
+        const result = await withdrawExpireUnfreeze("nile");
         expect(typeof result).toBe("string");
         console.log(`Withdraw Tx ID: ${result}`);
       } catch (error: any) {
@@ -64,13 +61,10 @@ describe("Staking Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "getAvailableUnfreezeCount should return a number",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       const address = process.env.TRON_ADDRESS;
-      // If TRON_ADDRESS is not set, fall back to deriving from private key via tronWeb in staking service,
-      // but here we just assert that the call succeeds when address is provided.
       if (!address) {
         console.log("Skipping getAvailableUnfreezeCount test: TRON_ADDRESS not configured");
         return;
@@ -83,7 +77,7 @@ describe("Staking Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "getCanWithdrawUnfreezeAmount should return amount information",
     async () => {
       const address = process.env.TRON_ADDRESS;
@@ -102,12 +96,11 @@ describe("Staking Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "cancelAllUnfreezeV2 should attempt to cancel and return error or tx hash",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       try {
-        const result = await cancelAllUnfreezeV2(privateKey, "nile");
+        const result = await cancelAllUnfreezeV2("nile");
         expect(typeof result).toBe("string");
         console.log(`CancelAllUnfreezeV2 Tx ID: ${result}`);
       } catch (error: any) {

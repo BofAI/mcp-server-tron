@@ -239,9 +239,8 @@ export function registerGovernanceTools(registerTool: RegisterToolFn) {
     },
     async ({ url, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.createWitness(privateKey, url, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.createWitness(url, network);
         return {
           content: [
             {
@@ -294,9 +293,8 @@ export function registerGovernanceTools(registerTool: RegisterToolFn) {
     },
     async ({ url, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.updateWitness(privateKey, url, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.updateWitness(url, network);
         return {
           content: [
             {
@@ -356,9 +354,8 @@ export function registerGovernanceTools(registerTool: RegisterToolFn) {
     },
     async ({ votes, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.voteWitness(privateKey, votes, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.voteWitness(votes, network);
         return {
           content: [
             {
@@ -409,9 +406,8 @@ export function registerGovernanceTools(registerTool: RegisterToolFn) {
     },
     async ({ network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.withdrawBalance(privateKey, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.withdrawBalance(network);
         return {
           content: [
             {
@@ -467,9 +463,8 @@ export function registerGovernanceTools(registerTool: RegisterToolFn) {
     },
     async ({ brokerage, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.updateBrokerage(privateKey, brokerage, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.updateBrokerage(brokerage, network);
         return {
           content: [
             {

@@ -9,12 +9,12 @@ import {
   createAccount,
   updateAccount,
 } from "../../../src/core/services/account.js";
-import { getConfiguredPrivateKey } from "../../../src/core/services/wallet.js";
 
 const TEST_ADDRESS = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";
 
 describe("Account Services Integration (Nile)", () => {
-  const hasPrivateKey = !!process.env.TRON_PRIVATE_KEY || !!process.env.TRON_MNEMONIC;
+  const hasWallet = !!process.env.TRON_PRIVATE_KEY || !!process.env.TRON_MNEMONIC
+    || !!(process.env.AGENT_WALLET_DIR && process.env.AGENT_WALLET_PASSWORD);
 
   // ============================================================================
   // READ-ONLY TESTS
@@ -71,25 +71,23 @@ describe("Account Services Integration (Nile)", () => {
 
   it("generateAccount should create a new keypair offline", async () => {
     const account = await generateAccount();
-    expect(account.privateKey).toBeDefined();
-    expect(typeof account.privateKey).toBe("string");
-    expect(account.publicKey).toBeDefined();
-    expect(account.address).toBeDefined();
-    console.log("Generated address:", account.address);
+    // In legacy mode, returns { privateKey, publicKey, address }
+    expect(account).toBeDefined();
+    expect((account as any).address).toBeDefined();
+    console.log("Generated address:", (account as any).address);
   }, 10000);
 
   // ============================================================================
   // WRITE TESTS (require private key)
   // ============================================================================
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "createAccount should attempt to activate an address",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       // Generate a fresh address to activate
       const newAccount = await generateAccount();
       try {
-        const txHash = await createAccount(privateKey, newAccount.address.base58, "nile");
+        const txHash = await createAccount((newAccount as any).address.base58, "nile");
         expect(typeof txHash).toBe("string");
         console.log(`CreateAccount Tx ID: ${txHash}`);
       } catch (error: any) {
@@ -101,12 +99,11 @@ describe("Account Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "updateAccount should attempt to set account name",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       try {
-        const txHash = await updateAccount(privateKey, "TestAccount", "nile");
+        const txHash = await updateAccount("TestAccount", "nile");
         expect(typeof txHash).toBe("string");
         console.log(`UpdateAccount Tx ID: ${txHash}`);
       } catch (error: any) {
@@ -116,31 +113,5 @@ describe("Account Services Integration (Nile)", () => {
       }
     },
     30000,
-  );
-
-  it.runIf(hasPrivateKey)(
-    "full lifecycle: generate + create + updateAccount on new account",
-    async () => {
-      const configuredKey = getConfiguredPrivateKey();
-
-      // 1. Generate a new account offline
-      const newAccount = await generateAccount();
-      console.log("Generated new address:", newAccount.address.base58);
-
-      // 2. Activate it on-chain using configured wallet
-      const createTx = await createAccount(configuredKey, newAccount.address.base58, "nile");
-      expect(typeof createTx).toBe("string");
-      console.log(`CreateAccount Tx ID: ${createTx}`);
-
-      // 3. Wait for transaction confirmation
-      await new Promise((r) => setTimeout(r, 5000));
-
-      // 4. Set account name using the new account's own private key
-      const accountName = "Test_" + Date.now();
-      const updateTx = await updateAccount(newAccount.privateKey, accountName, "nile");
-      expect(typeof updateTx).toBe("string");
-      console.log(`UpdateAccount Tx ID: ${updateTx}, name: ${accountName}`);
-    },
-    60000,
   );
 });

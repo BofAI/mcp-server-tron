@@ -1,4 +1,5 @@
-import { getTronWeb, getWallet } from "./clients.js";
+import { getTronWeb } from "./clients.js";
+import { getOwnerAddress, buildSignBroadcast, signTransaction } from "./agent-wallet.js";
 import { MULTICALL2_ABI, MULTICALL3_ABI } from "./multicall-abi.js";
 import { waitForTransaction } from "./transactions.js";
 
@@ -38,10 +39,10 @@ export async function readContract(
 }
 
 /**
- * Write to a smart contract (state changing functions)
+ * Write to a smart contract (state changing functions).
+ * Builds unsigned tx via triggerSmartContract, signs with agent-wallet, broadcasts.
  */
 export async function writeContract(
-  privateKey: string,
   params: {
     address: string;
     functionName: string;
@@ -51,29 +52,62 @@ export async function writeContract(
   },
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    let contract;
+    // Get ABI: from params or fetch from chain
+    let abi: any[];
     if (params.abi) {
-      contract = tronWeb.contract(params.abi, params.address);
+      abi = params.abi;
     } else {
-      contract = await tronWeb.contract().at(params.address);
+      const contractData = await tronWeb.trx.getContract(params.address);
+      if (!contractData?.abi?.entrys) {
+        throw new Error("Could not fetch ABI for contract. Please provide it explicitly.");
+      }
+      abi = contractData.abi.entrys;
     }
 
-    const method = contract.methods[params.functionName];
-    if (!method) {
-      throw new Error(`Function ${params.functionName} not found in contract`);
+    // Find function in ABI
+    const func = abi.find(
+      (item: any) => item.type === "function" && item.name === params.functionName,
+    );
+    if (!func) {
+      throw new Error(`Function ${params.functionName} not found in contract ABI`);
     }
 
+    // Build function signature with tuple support via expandType
+    const inputTypes = (func.inputs || []).map((i: any) => expandType(i));
+    const functionSelector = `${params.functionName}(${inputTypes.join(",")})`;
+
+    // Map args to typed parameters
     const args = params.args || [];
+    const typedParams = args.map((val: any, index: number) => ({
+      type: inputTypes[index],
+      value: val,
+    }));
+
     const options: any = {};
     if (params.value) {
       options.callValue = params.value;
     }
 
-    const txId = await method(...args).send(options);
-    return txId;
+    const { transaction, result: triggerResult } =
+      await tronWeb.transactionBuilder.triggerSmartContract(
+        params.address,
+        functionSelector,
+        options,
+        typedParams,
+        ownerAddress,
+      );
+
+    if (!triggerResult || !triggerResult.result) {
+      throw new Error(
+        `Failed to build contract write transaction: ${JSON.stringify(triggerResult)}`,
+      );
+    }
+
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Write contract failed: ${error.message}`);
   }
@@ -145,29 +179,20 @@ export async function getContractInfo(contractAddress: string, network = "mainne
  * Update contract setting: consume_user_resource_percent (user pay ratio)
  */
 export async function updateSetting(
-  privateKey: string,
   contractAddress: string,
   consumeUserResourcePercent: number,
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
     const tx = await tronWeb.transactionBuilder.updateSetting(
       contractAddress,
       consumeUserResourcePercent,
       ownerAddress,
     );
-
-    const signedTx = await tronWeb.trx.sign(tx, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`UpdateSetting failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(tx as any, network);
   } catch (error: any) {
     throw new Error(`Failed to update setting: ${error.message}`);
   }
@@ -177,29 +202,20 @@ export async function updateSetting(
  * Update contract originEnergyLimit (max energy the contract creator will pay per execution)
  */
 export async function updateEnergyLimit(
-  privateKey: string,
   contractAddress: string,
   originEnergyLimit: number,
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
     const tx = await tronWeb.transactionBuilder.updateEnergyLimit(
       contractAddress,
       originEnergyLimit,
       ownerAddress,
     );
-
-    const signedTx = await tronWeb.trx.sign(tx, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`UpdateEnergyLimit failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(tx as any, network);
   } catch (error: any) {
     throw new Error(`Failed to update energy limit: ${error.message}`);
   }
@@ -209,23 +225,13 @@ export async function updateEnergyLimit(
  * Clear the ABI of a contract on-chain.
  * This removes the ABI metadata associated with the contract (ClearABIContract).
  */
-export async function clearABI(
-  privateKey: string,
-  contractAddress: string,
-  network = "mainnet",
-) {
-  const tronWeb = getWallet(privateKey, network);
+export async function clearABI(contractAddress: string, network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const tx = await tronWeb.transactionBuilder.clearABI(contractAddress);
-    const signedTx = await tronWeb.trx.sign(tx, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`ClearABI failed: ${JSON.stringify(result)}`);
-    }
+    const tx = await (tronWeb.transactionBuilder as any).clearABI(contractAddress, ownerAddress);
+    return await buildSignBroadcast(tx as any, network);
   } catch (error: any) {
     throw new Error(`Failed to clear ABI: ${error.message}`);
   }
@@ -454,7 +460,6 @@ export async function multicall(
  * Deploy a smart contract to the TRON network
  */
 export async function deployContract(
-  privateKey: string,
   params: {
     abi: any[];
     bytecode: string;
@@ -466,9 +471,11 @@ export async function deployContract(
   },
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
+    const ownerHex = tronWeb.address.toHex(ownerAddress);
     const deploymentOptions = {
       abi: params.abi,
       bytecode: params.bytecode.startsWith("0x") ? params.bytecode : "0x" + params.bytecode,
@@ -479,17 +486,15 @@ export async function deployContract(
       userPercentage: params.userPercentage || 0,
     };
 
-    // 1. Create transaction
+    // 1. Create unsigned transaction
     const transaction = await tronWeb.transactionBuilder.createSmartContract(
       deploymentOptions,
-      tronWeb.defaultAddress.hex as string,
+      ownerHex,
     );
 
-    // 2. Sign transaction
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-
-    // 3. Broadcast transaction
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+    // 2. Sign and broadcast
+    const signedTx = await signTransaction(transaction as any);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx as any);
 
     if (result && result.result) {
       const txID = result.transaction.txID;
@@ -498,7 +503,6 @@ export async function deployContract(
       const info = await waitForTransaction(txID, network);
 
       // Check if transaction actually succeeded
-      // In TRON, success is often indicated by info.receipt.result === 'SUCCESS' or info.result === 'FAILED' (if it exists)
       if (info.receipt && info.receipt.result && info.receipt.result !== "SUCCESS") {
         const revertReason = info.resMessage
           ? Buffer.from(info.resMessage, "hex").toString()

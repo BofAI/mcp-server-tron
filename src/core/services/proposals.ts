@@ -1,4 +1,5 @@
-import { getTronWeb, getWallet } from "./clients.js";
+import { getTronWeb } from "./clients.js";
+import { getOwnerAddress, buildSignBroadcast } from "./agent-wallet.js";
 
 // ============================================================================
 // PROPOSAL READ OPERATIONS
@@ -39,19 +40,18 @@ export async function getProposalById(proposalId: number, network = "mainnet"): 
 
 /**
  * Create a new network proposal (SR only)
- * @param privateKey The private key of the SR
  * @param parameters Object mapping chain parameter keys (number) to their proposed values (number)
  * @param network Network name
  * @returns Transaction hash
  */
 export async function createProposal(
-  privateKey: string,
   parameters: Record<number, number>,
   network = "mainnet",
 ): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
+
   try {
-    const address = tronWeb.defaultAddress.base58 || undefined;
     // TronWeb expects [{key, value}] format, not a plain object
     const proposalParams = Object.entries(parameters).map(([k, v]) => ({
       key: Number(k),
@@ -59,16 +59,9 @@ export async function createProposal(
     }));
     const transaction = await tronWeb.transactionBuilder.createProposal(
       proposalParams as any,
-      address as any,
+      ownerAddress as any,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`CreateProposal failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to create proposal: ${error.message}`);
   }
@@ -76,34 +69,26 @@ export async function createProposal(
 
 /**
  * Vote to approve a proposal (SR only)
- * @param privateKey The private key of the SR
  * @param proposalId The ID of the proposal to approve
  * @param approve Whether to approve (true) or disapprove (false)
  * @param network Network name
  * @returns Transaction hash
  */
 export async function approveProposal(
-  privateKey: string,
   proposalId: number,
   approve: boolean,
   network = "mainnet",
 ): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
+
   try {
-    const address = tronWeb.defaultAddress.base58 || undefined;
     const transaction = await tronWeb.transactionBuilder.voteProposal(
       proposalId,
       approve,
-      address as any,
+      ownerAddress as any,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`ApproveProposal failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to approve proposal: ${error.message}`);
   }
@@ -111,28 +96,23 @@ export async function approveProposal(
 
 /**
  * Delete a proposal (SR only, proposer only)
- * @param privateKey The private key of the SR who created the proposal
  * @param proposalId The ID of the proposal to delete
  * @param network Network name
  * @returns Transaction hash
  */
 export async function deleteProposal(
-  privateKey: string,
   proposalId: number,
   network = "mainnet",
 ): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
-  try {
-    const address = tronWeb.defaultAddress.base58 || undefined;
-    const transaction = await tronWeb.transactionBuilder.deleteProposal(proposalId, address as any);
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`DeleteProposal failed: ${JSON.stringify(result)}`);
-    }
+  try {
+    const transaction = await tronWeb.transactionBuilder.deleteProposal(
+      proposalId,
+      ownerAddress as any,
+    );
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to delete proposal: ${error.message}`);
   }

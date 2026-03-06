@@ -51,10 +51,8 @@ export function registerAccountResourceTools(registerTool: RegisterToolFn) {
       network = "mainnet",
     }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.delegateResource(
-          privateKey,
           {
             amount,
             receiverAddress,
@@ -131,10 +129,8 @@ export function registerAccountResourceTools(registerTool: RegisterToolFn) {
     },
     async ({ receiverAddress, amount, resource, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.undelegateResource(
-          privateKey,
           {
             amount,
             receiverAddress,

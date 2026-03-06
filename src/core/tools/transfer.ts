@@ -22,9 +22,8 @@ export function registerTransferTools(registerTool: RegisterToolFn) {
     },
     async ({ to, amount, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.transferTRX(privateKey, to, amount, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.transferTRX(to, amount, network);
         return {
           content: [
             {
@@ -78,9 +77,8 @@ export function registerTransferTools(registerTool: RegisterToolFn) {
     },
     async ({ tokenAddress, to, amount, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const result = await services.transferTRC20(tokenAddress, to, amount, privateKey, network);
+        const senderAddress = await services.getOwnerAddress();
+        const result = await services.transferTRC20(tokenAddress, to, amount, network);
         return {
           content: [
             {
