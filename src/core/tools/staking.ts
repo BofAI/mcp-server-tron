@@ -26,10 +26,8 @@ export function registerStakingTools(registerTool: RegisterToolFn) {
     },
     async ({ amount, resource = "BANDWIDTH", network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.freezeBalanceV2(
-          privateKey,
           amount,
           resource as "BANDWIDTH" | "ENERGY",
           network,
@@ -89,10 +87,8 @@ export function registerStakingTools(registerTool: RegisterToolFn) {
     },
     async ({ amount, resource = "BANDWIDTH", network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.unfreezeBalanceV2(
-          privateKey,
           amount,
           resource as "BANDWIDTH" | "ENERGY",
           network,
@@ -148,9 +144,8 @@ export function registerStakingTools(registerTool: RegisterToolFn) {
     },
     async ({ network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.withdrawExpireUnfreeze(privateKey, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.withdrawExpireUnfreeze(network);
         return {
           content: [
             {
@@ -201,9 +196,8 @@ export function registerStakingTools(registerTool: RegisterToolFn) {
     },
     async ({ network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.cancelAllUnfreezeV2(privateKey, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.cancelAllUnfreezeV2(network);
         return {
           content: [
             {

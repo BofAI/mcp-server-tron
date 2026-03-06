@@ -1,4 +1,5 @@
-import { getTronWeb, getWallet } from "./clients.js";
+import { getTronWeb } from "./clients.js";
+import { getOwnerAddress, buildSignBroadcast, signTransactionRaw } from "./agent-wallet.js";
 
 // ============================================================================
 // WITNESS / SUPER REPRESENTATIVE READ OPERATIONS
@@ -103,28 +104,17 @@ export async function getBrokerage(witnessAddress: string, network = "mainnet") 
 
 /**
  * Apply to become a Super Representative (witness)
- * @param privateKey The private key of the applicant
  * @param url The official website URL of the SR candidate
  * @param network Network name
  * @returns Transaction hash
  */
-export async function createWitness(
-  privateKey: string,
-  url: string,
-  network = "mainnet",
-): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
-  try {
-    const address = tronWeb.defaultAddress.base58 || undefined;
-    const transaction = await tronWeb.transactionBuilder.applyForSR(address as any, url);
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+export async function createWitness(url: string, network = "mainnet"): Promise<string> {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`CreateWitness failed: ${JSON.stringify(result)}`);
-    }
+  try {
+    const transaction = await tronWeb.transactionBuilder.applyForSR(ownerAddress as any, url);
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to create witness (apply for SR): ${error.message}`);
   }
@@ -132,43 +122,39 @@ export async function createWitness(
 
 /**
  * Update SR node URL via raw API (TronWeb TransactionBuilder does not expose updateWitness)
- * @param privateKey The private key of the SR
  * @param url The new official website URL
  * @param network Network name
  * @returns Transaction hash
  */
-export async function updateWitness(
-  privateKey: string,
-  url: string,
-  network = "mainnet",
-): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
+export async function updateWitness(url: string, network = "mainnet"): Promise<string> {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
+
   try {
-    const ownerAddress = tronWeb.defaultAddress.hex;
-    if (!ownerAddress) {
-      throw new Error("No owner address configured");
-    }
+    const ownerHex = tronWeb.address.toHex(ownerAddress);
 
     // Build the WitnessUpdateContract via raw API since TronWeb SDK doesn't wrap it
     const transaction = await (tronWeb as any).fullNode.request(
       "wallet/updatewitness",
       {
-        owner_address: ownerAddress,
+        owner_address: ownerHex,
         update_url: Buffer.from(url).toString("hex"),
       },
       "post",
     );
 
-    if (!transaction || transaction.Error) {
+    if (!transaction || (transaction as any).Error) {
       throw new Error(
-        `Failed to build updateWitness transaction: ${transaction?.Error || "unknown error"}`,
+        `Failed to build updateWitness transaction: ${(transaction as any)?.Error || "unknown error"}`,
       );
     }
 
-    // Use internal crypto.signTransaction to bypass txCheck, which does not support
-    // WitnessUpdateContract in the txJsonToPb mapping (causes "getRawData" error).
-    const signedTx = (tronWeb as any).utils.crypto.signTransaction(privateKey, transaction);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+    // WitnessUpdateContract is not in TronWeb's txJsonToPb mapping, so tronWeb.trx.sign()
+    // fails with "getRawData" error. Use signTransactionRaw which bypasses txCheck:
+    // - agent-wallet mode: signs raw_data_hex directly
+    // - legacy mode: uses crypto.signTransaction
+    const signedTx = await signTransactionRaw(transaction as any, network);
+    const result = await tronWeb.trx.sendRawTransaction(signedTx as any);
 
     if (result.result) {
       return result.txid;
@@ -183,33 +169,28 @@ export async function updateWitness(
 /**
  * Vote for Super Representatives
  * Requires the voter to have frozen TRX (Stake 2.0) to obtain TRON Power.
- * @param privateKey The private key of the voter
  * @param votes Array of { address, voteCount } objects
  * @param network Network name
  * @returns Transaction hash
  */
 export async function voteWitness(
-  privateKey: string,
   votes: Array<{ address: string; voteCount: number }>,
   network = "mainnet",
 ): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
+
   try {
-    const ownerAddress = tronWeb.defaultAddress.base58 || undefined;
     // TronWeb vote() expects an object { srAddress: voteCount, ... }
     const voteMap: Record<string, number> = {};
     for (const v of votes) {
       voteMap[v.address] = v.voteCount;
     }
-    const transaction = await tronWeb.transactionBuilder.vote(voteMap as any, ownerAddress as any);
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`VoteWitness failed: ${JSON.stringify(result)}`);
-    }
+    const transaction = await tronWeb.transactionBuilder.vote(
+      voteMap as any,
+      ownerAddress as any,
+    );
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to vote for witness: ${error.message}`);
   }
@@ -217,23 +198,18 @@ export async function voteWitness(
 
 /**
  * Withdraw voting reward balance to the account
- * @param privateKey The private key of the account
  * @param network Network name
  * @returns Transaction hash
  */
-export async function withdrawBalance(privateKey: string, network = "mainnet"): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
-  try {
-    const address = tronWeb.defaultAddress.base58 || undefined;
-    const transaction = await tronWeb.transactionBuilder.withdrawBlockRewards(address as any);
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+export async function withdrawBalance(network = "mainnet"): Promise<string> {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`WithdrawBalance failed: ${JSON.stringify(result)}`);
-    }
+  try {
+    const transaction = await tronWeb.transactionBuilder.withdrawBlockRewards(
+      ownerAddress as any,
+    );
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to withdraw balance: ${error.message}`);
   }
@@ -241,28 +217,23 @@ export async function withdrawBalance(privateKey: string, network = "mainnet"): 
 
 /**
  * Update the SR brokerage ratio (dividend ratio for voters)
- * @param privateKey The private key of the SR
  * @param brokerage Brokerage percentage (0-100). E.g. 20 means SR keeps 20%, voters get 80%.
  * @param network Network name
  * @returns Transaction hash
  */
 export async function updateBrokerage(
-  privateKey: string,
   brokerage: number,
   network = "mainnet",
 ): Promise<string> {
-  const tronWeb = getWallet(privateKey, network);
-  try {
-    const address = tronWeb.defaultAddress.base58 || undefined;
-    const transaction = await tronWeb.transactionBuilder.updateBrokerage(brokerage, address as any);
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`UpdateBrokerage failed: ${JSON.stringify(result)}`);
-    }
+  try {
+    const transaction = await tronWeb.transactionBuilder.updateBrokerage(
+      brokerage,
+      ownerAddress as any,
+    );
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to update brokerage: ${error.message}`);
   }

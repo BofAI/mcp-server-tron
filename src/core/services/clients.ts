@@ -36,7 +36,8 @@ export function getTronWeb(network = "mainnet"): TronWeb {
 }
 
 /**
- * Create a TronWeb instance with a private key for signing
+ * @deprecated Use signTransaction / buildSignBroadcast from agent-wallet.ts instead.
+ * Only used internally by agent-wallet.ts for legacy mode signing.
  */
 export function getWallet(privateKey: string, network = "mainnet"): TronWeb {
   const config = getNetworkConfig(network);

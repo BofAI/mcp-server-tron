@@ -103,17 +103,7 @@ export function registerAccountTools(registerTool: RegisterToolFn) {
           content: [
             {
               type: "text",
-              text: JSON.stringify(
-                {
-                  privateKey: account.privateKey,
-                  publicKey: account.publicKey,
-                  address: account.address,
-                  message:
-                    "Account generated offline. Use create_account to activate it on-chain, or simply send TRX to the address to activate.",
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(account, null, 2),
             },
           ],
         };
@@ -346,9 +336,8 @@ export function registerAccountTools(registerTool: RegisterToolFn) {
     },
     async ({ address, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.createAccount(privateKey, address, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.createAccount(address, network);
         return {
           content: [
             {
@@ -399,9 +388,8 @@ export function registerAccountTools(registerTool: RegisterToolFn) {
     },
     async ({ accountName, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.updateAccount(privateKey, accountName, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.updateAccount(accountName, network);
         return {
           content: [
             {
@@ -496,10 +484,8 @@ export function registerAccountTools(registerTool: RegisterToolFn) {
     },
     async ({ ownerPermission, activePermissions, witnessPermission, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.updateAccountPermissions(
-          privateKey,
           ownerPermission,
           activePermissions,
           witnessPermission,

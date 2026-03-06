@@ -37,3 +37,7 @@ RELEASE_NOTES.md
 .env
 .env.local
 .env.*.local
+
+# Claude Code
+.claude/
+CLAUDE.md

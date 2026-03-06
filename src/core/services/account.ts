@@ -1,5 +1,11 @@
 import { TronWeb } from "tronweb";
-import { getTronWeb, getWallet } from "./clients.js";
+import { getTronWeb } from "./clients.js";
+import {
+  getOwnerAddress,
+  buildSignBroadcast,
+  generateAndStoreAccount,
+  isAgentWalletConfigured,
+} from "./agent-wallet.js";
 
 /**
  * Get full account information from the TRON network
@@ -49,11 +55,22 @@ export async function getAccountBalance(
 }
 
 /**
- * Generate a new account offline (keypair generation, no network interaction)
- * @returns Object with privateKey, publicKey, and address (base58 + hex)
+ * Generate a new account.
+ * - agent-wallet mode: generates key, stores encrypted, returns walletId + address
+ * - legacy mode: generates offline keypair (no network interaction)
  */
 export async function generateAccount() {
   try {
+    if (isAgentWalletConfigured()) {
+      const result = await generateAndStoreAccount();
+      return {
+        walletId: result.walletId,
+        address: { base58: result.address },
+        message: "Account generated and stored in agent-wallet (private key encrypted at rest)",
+      };
+    }
+
+    // Legacy mode: generate offline keypair
     const account = await TronWeb.createAccount();
     return account;
   } catch (error: any) {
@@ -149,27 +166,20 @@ export async function getDelegatedResourceIndex(address: string, network = "main
 
 /**
  * Activate a new account on the TRON network (costs bandwidth from the creator)
- * @param privateKey Creator's private key
  * @param newAddress Address to activate
  * @param network Network name
  * @returns Transaction hash
  */
-export async function createAccount(privateKey: string, newAddress: string, network = "mainnet") {
-  const tronWeb = getWallet(privateKey, network);
+export async function createAccount(newAddress: string, network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
     const transaction = await tronWeb.transactionBuilder.createAccount(
       newAddress,
-      tronWeb.defaultAddress.base58 || undefined,
+      ownerAddress,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`CreateAccount failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to create account: ${error.message}`);
   }
@@ -177,27 +187,20 @@ export async function createAccount(privateKey: string, newAddress: string, netw
 
 /**
  * Update account name (can only be set once)
- * @param privateKey Account's private key
  * @param accountName New account name
  * @param network Network name
  * @returns Transaction hash
  */
-export async function updateAccount(privateKey: string, accountName: string, network = "mainnet") {
-  const tronWeb = getWallet(privateKey, network);
+export async function updateAccount(accountName: string, network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
     const transaction = await tronWeb.transactionBuilder.updateAccount(
       accountName,
-      tronWeb.defaultAddress.base58 || undefined,
+      ownerAddress,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`UpdateAccount failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to update account: ${error.message}`);
   }
@@ -205,7 +208,6 @@ export async function updateAccount(privateKey: string, accountName: string, net
 
 /**
  * Update account permissions (multi-signature configuration)
- * @param privateKey Account's private key
  * @param ownerPermission Owner permission configuration
  * @param activePermissions Active permission(s) configuration
  * @param witnessPermission Optional witness permission (for Super Representatives)
@@ -213,7 +215,6 @@ export async function updateAccount(privateKey: string, accountName: string, net
  * @returns Transaction hash
  */
 export async function updateAccountPermissions(
-  privateKey: string,
   ownerPermission: {
     type: number;
     permission_name: string;
@@ -246,23 +247,17 @@ export async function updateAccountPermissions(
     | undefined,
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
     const transaction = await tronWeb.transactionBuilder.updateAccountPermissions(
-      tronWeb.defaultAddress.base58 || undefined,
+      ownerAddress,
       ownerPermission as any,
       witnessPermission as any,
       activePermissions as any,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`AccountPermissionUpdate failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to update account permissions: ${error.message}`);
   }

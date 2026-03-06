@@ -36,7 +36,7 @@ Key capabilities:
 - **Smart Contracts**: Interact with any TRON smart contract (Read/Write).
 - **Tokens**: Transfer TRX and TRC20 tokens; check balances.
 - **Address Management**: Convert between Hex (0x...) and Base58 (T...) formats.
-- **Wallet Integration**: Support for Private Key and Mnemonic (BIP-39) wallets.
+- **Wallet Integration**: Agent-wallet (encrypted keystore), Private Key, and Mnemonic (BIP-39) wallets.
 - **Multi-Network**: Seamless support for Mainnet, Nile, and Shasta.
 - **Dynamic Access Control**: Automatically hides write tools if no wallet is configured or if `--readonly` mode is active.
 
@@ -91,9 +91,10 @@ Key capabilities:
 
 ### Wallet & Security
 
-- **Flexible Wallet**: Configure via `TRON_PRIVATE_KEY` or `TRON_MNEMONIC`.
+- **Agent-Wallet (Recommended)**: Encrypted key storage via agent-wallet SDK — private keys never leave the keystore.
+- **Legacy Wallet**: Configure via `TRON_PRIVATE_KEY` or `TRON_MNEMONIC` environment variables.
 - **HD Wallet**: Supports BIP-44 derivation path `m/44'/195'/0'/0/{index}`.
-- **Signing**: Sign arbitrary messages.
+- **Signing**: Sign arbitrary messages and transactions.
 
 ## Supported Networks
 
@@ -134,22 +135,38 @@ To enable write operations (transfers, contract calls) and ensure reliable API a
     export TRONGRID_API_KEY="<YOUR_TRONGRID_API_KEY_HERE>"
     ```
 
-#### Wallet Configuration (Use Environment Variables)
+#### Wallet Configuration
 
-**Option 1: Private Key**
+Choose **one** of the following modes. If none is configured, the server runs in **read-only mode**.
+
+**Option 1: Agent-Wallet Mode (Recommended)**
+
+Private keys are encrypted at rest (Keystore V3: scrypt + AES-128-CTR) and never exposed in environment variables.
+
+> First, follow the [agent-wallet README](https://github.com/BofAI/agent-wallet#readme) to install and set up your wallet (`agent-wallet init`, `agent-wallet add`). Then configure the environment variables below:
 
 ```bash
-# Recommended: Add this to your ~/.zshrc or ~/.bashrc
+export AGENT_WALLET_DIR="<YOUR_WALLET_DIR>"
+export AGENT_WALLET_PASSWORD="<YOUR_MASTER_PASSWORD>"
+export AGENT_WALLET_ID="<WALLET_ID>"  # Optional, auto-selects first wallet if omitted
+```
+
+**Option 2: Private Key (Legacy)**
+
+```bash
 export TRON_PRIVATE_KEY="<YOUR_PRIVATE_KEY_HERE>"
 ```
 
-**Option 2: Mnemonic Phrase**
+**Option 3: Mnemonic Phrase (Legacy)**
 
 ```bash
-# Recommended: Add this to your ~/.zshrc or ~/.bashrc
 export TRON_MNEMONIC="<WORD1> <WORD2> ... <WORD12>"
-export TRON_ACCOUNT_INDEX="0" # Optional, default: 0
+export TRON_ACCOUNT_INDEX="0"  # Optional, default: 0
 ```
+
+> **Security Note**: Legacy modes store keys in plaintext environment variables. Agent-wallet mode is strongly recommended for production use.
+
+> See [`.env.example`](.env.example) for a complete list of all supported environment variables.
 
 ### Server Configuration
 
@@ -191,7 +208,7 @@ npx vitest tests/core/services/services.test.ts        # Services integration
 ```
 
 - **Unit tests** use mocks and do not need network or wallet.
-- **Integration tests** (`tools_integration.test.ts`) call Nile RPC; most cases are read-only. Tests that broadcast transactions (e.g. `vote_witness`, `withdraw_balance`) run only when `TRON_PRIVATE_KEY` is set in the environment and are skipped otherwise.
+- **Integration tests** (`tools_integration.test.ts`) call Nile RPC; most cases are read-only. Tests that broadcast transactions (e.g. `vote_witness`, `withdraw_balance`) run only when a wallet is configured (agent-wallet or `TRON_PRIVATE_KEY`) and are skipped otherwise.
 
 ### Client Configuration
 

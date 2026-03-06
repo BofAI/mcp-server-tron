@@ -39,6 +39,10 @@ async function startServer(options: { readOnly?: boolean } = {}) {
     registerTRONTools(server, options);
     registerTRONPrompts(server, options);
 
+    // Initialize active wallet if agent-wallet is configured
+    const { initActiveWallet } = await import("../core/services/agent-wallet.js");
+    await initActiveWallet();
+
     // Log server information
     console.error(`mcp-server-tron v${version} initialized`);
     if (options.readOnly) {

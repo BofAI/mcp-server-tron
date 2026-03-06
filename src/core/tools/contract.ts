@@ -353,11 +353,9 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     },
     async ({ contractAddress, functionName, args = [], abi, value, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
 
         const txHash = await services.writeContract(
-          privateKey,
           {
             address: contractAddress,
             functionName,
@@ -440,11 +438,9 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     },
     async ({ abi, bytecode, args = [], name, network = "mainnet", feeLimit }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
 
         const result = await services.deployContract(
-          privateKey,
           {
             abi,
             bytecode,
@@ -576,10 +572,8 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     },
     async ({ contractAddress, consumeUserResourcePercent, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.updateSetting(
-          privateKey,
           contractAddress,
           consumeUserResourcePercent,
           network,
@@ -643,10 +637,8 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     },
     async ({ contractAddress, originEnergyLimit, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         const txHash = await services.updateEnergyLimit(
-          privateKey,
           contractAddress,
           originEnergyLimit,
           network,
@@ -707,9 +699,8 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     },
     async ({ contractAddress, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.clearABI(privateKey, contractAddress, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.clearABI(contractAddress, network);
 
         return {
           content: [

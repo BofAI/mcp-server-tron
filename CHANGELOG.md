@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4] - 2026-03-06
+
+### Added
+
+- **Agent-wallet integration**: Encrypted key storage via `@bankofai/agent-wallet` SDK. Private keys never exposed in environment variables.
+- Dual-mode wallet support: agent-wallet mode (recommended) and legacy mode (`TRON_PRIVATE_KEY` / `TRON_MNEMONIC`).
+- Active wallet state management: `selectWallet` runtime switching, `getActiveWalletId` env var fallback, and auto-initialization on server startup.
+
 ## [1.1.3] - 2026-02-28
 
 ### Added

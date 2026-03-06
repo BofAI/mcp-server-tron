@@ -1,35 +1,28 @@
-import { getTronWeb, getWallet } from "./clients.js";
+import { getTronWeb } from "./clients.js";
+import { getOwnerAddress, buildSignBroadcast } from "./agent-wallet.js";
 
 /**
  * Freeze TRX to get resources (Stake 2.0)
- * @param privateKey The private key of the account to freeze balance
  * @param amount Amount to freeze in Sun (decimal string to preserve precision for large values)
  * @param resource Resource type: "BANDWIDTH" or "ENERGY"
  * @param network Network name (mainnet, nile, shasta)
  * @returns Transaction hash
  */
 export async function freezeBalanceV2(
-  privateKey: string,
   amount: string,
   resource: "BANDWIDTH" | "ENERGY" = "BANDWIDTH",
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
     const transaction = await tronWeb.transactionBuilder.freezeBalanceV2(
-      amount as any, // Pass string directly; TronWeb's protobuf Long handles large integers safely
+      amount as any,
       resource,
-      tronWeb.defaultAddress.base58 || undefined,
+      ownerAddress,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`FreezeBalanceV2 failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to freeze balance V2: ${error.message}`);
   }
@@ -37,34 +30,26 @@ export async function freezeBalanceV2(
 
 /**
  * Unfreeze TRX to release resources (Stake 2.0)
- * @param privateKey The private key of the account to unfreeze balance
  * @param amount Amount to unfreeze in Sun (decimal string to preserve precision for large values)
  * @param resource Resource type: "BANDWIDTH" or "ENERGY"
  * @param network Network name (mainnet, nile, shasta)
  * @returns Transaction hash
  */
 export async function unfreezeBalanceV2(
-  privateKey: string,
   amount: string,
   resource: "BANDWIDTH" | "ENERGY" = "BANDWIDTH",
   network = "mainnet",
 ) {
-  const tronWeb = getWallet(privateKey, network);
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
     const transaction = await tronWeb.transactionBuilder.unfreezeBalanceV2(
-      amount as any, // Pass string directly; TronWeb's protobuf Long handles large integers safely
+      amount as any,
       resource,
-      tronWeb.defaultAddress.base58 || undefined,
+      ownerAddress,
     );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`UnfreezeBalanceV2 failed: ${JSON.stringify(result)}`);
-    }
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to unfreeze balance V2: ${error.message}`);
   }
@@ -73,25 +58,16 @@ export async function unfreezeBalanceV2(
 /**
  * Withdraw expired unfrozen balance (Stake 2.0)
  * After the unfreezing period is over, this must be called to return TRX to available balance.
- * @param privateKey The private key of the account
  * @param network Network name (mainnet, nile, shasta)
  * @returns Transaction hash
  */
-export async function withdrawExpireUnfreeze(privateKey: string, network = "mainnet") {
-  const tronWeb = getWallet(privateKey, network);
+export async function withdrawExpireUnfreeze(network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze(
-      tronWeb.defaultAddress.base58 || undefined,
-    );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`WithdrawExpireUnfreeze failed: ${JSON.stringify(result)}`);
-    }
+    const transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze(ownerAddress);
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to withdraw expire unfreeze: ${error.message}`);
   }
@@ -99,10 +75,6 @@ export async function withdrawExpireUnfreeze(privateKey: string, network = "main
 
 /**
  * Get remaining available unstake (unfreeze) operations for an address (Stake 2.0)
- * Uses /wallet/getavailableunfreezecount under the hood.
- * @param address Wallet address (Base58 or hex)
- * @param network Network name (mainnet, nile, shasta)
- * @returns Remaining count of available unstake operations
  */
 export async function getAvailableUnfreezeCount(address: string, network = "mainnet") {
   const tronWeb = getTronWeb(network);
@@ -127,11 +99,6 @@ export async function getAvailableUnfreezeCount(address: string, network = "main
 
 /**
  * Get withdrawable unstaked amount for an address at a given timestamp (Stake 2.0)
- * Uses /wallet/getcanwithdrawunfreezeamount under the hood.
- * @param address Wallet address (Base58 or hex)
- * @param network Network name (mainnet, nile, shasta)
- * @param timestampMs Optional query timestamp in milliseconds. Defaults to current time.
- * @returns Object containing withdrawable amount in Sun and the timestamp used
  */
 export async function getCanWithdrawUnfreezeAmount(
   address: string,
@@ -169,28 +136,16 @@ export async function getCanWithdrawUnfreezeAmount(
 
 /**
  * Cancel all unfreeze operations (Stake 2.0)
- * This will:
- * - Re-stake all unfreezing amounts still in the waiting period
- * - Automatically withdraw all amounts whose unfreezing period has already expired
- * @param privateKey The private key of the account
  * @param network Network name (mainnet, nile, shasta)
  * @returns Transaction hash
  */
-export async function cancelAllUnfreezeV2(privateKey: string, network = "mainnet") {
-  const tronWeb = getWallet(privateKey, network);
+export async function cancelAllUnfreezeV2(network = "mainnet") {
+  const tronWeb = getTronWeb(network);
+  const ownerAddress = await getOwnerAddress();
 
   try {
-    const transaction = await (tronWeb.transactionBuilder as any).cancelAllUnfreezeV2(
-      tronWeb.defaultAddress.base58 || undefined,
-    );
-    const signedTx = await tronWeb.trx.sign(transaction, privateKey);
-    const result = await tronWeb.trx.sendRawTransaction(signedTx);
-
-    if (result.result) {
-      return result.txid;
-    } else {
-      throw new Error(`CancelAllUnfreezeV2 failed: ${JSON.stringify(result)}`);
-    }
+    const transaction = await (tronWeb.transactionBuilder as any).cancelAllUnfreezeV2(ownerAddress);
+    return await buildSignBroadcast(transaction as any, network);
   } catch (error: any) {
     throw new Error(`Failed to cancel all unfreeze V2: ${error.message}`);
   }

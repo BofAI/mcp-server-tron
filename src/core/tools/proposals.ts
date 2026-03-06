@@ -109,14 +109,13 @@ export function registerProposalTools(registerTool: RegisterToolFn) {
     },
     async ({ parameters, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
+        const senderAddress = await services.getOwnerAddress();
         // Convert string keys to numbers as expected by the service
         const numericParams: Record<number, number> = {};
         for (const [k, v] of Object.entries(parameters)) {
           numericParams[Number(k)] = v;
         }
-        const txHash = await services.createProposal(privateKey, numericParams, network);
+        const txHash = await services.createProposal(numericParams, network);
         return {
           content: [
             {
@@ -169,9 +168,8 @@ export function registerProposalTools(registerTool: RegisterToolFn) {
     },
     async ({ proposalId, approve, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.approveProposal(privateKey, proposalId, approve, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.approveProposal(proposalId, approve, network);
         return {
           content: [
             {
@@ -224,9 +222,8 @@ export function registerProposalTools(registerTool: RegisterToolFn) {
     },
     async ({ proposalId, network = "mainnet" }) => {
       try {
-        const privateKey = services.getConfiguredPrivateKey();
-        const senderAddress = services.getWalletAddressFromKey();
-        const txHash = await services.deleteProposal(privateKey, proposalId, network);
+        const senderAddress = await services.getOwnerAddress();
+        const txHash = await services.deleteProposal(proposalId, network);
         return {
           content: [
             {

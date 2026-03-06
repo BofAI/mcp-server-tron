@@ -173,8 +173,8 @@ app.get("/health", (_req: Request, res: Response) => {
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     name: "mcp-server-tron",
-    version: "1.1.3",
-    protocol: "MCP 2025-06-18",
+    version: "1.1.4",
+    protocol: "MCP 2025-11-25",
     transport: "Streamable HTTP",
     endpoints: {
       mcp: "/mcp",
@@ -217,7 +217,7 @@ const httpServer = app
     console.error(`mcp-server-tron running at http://${HOST}:${PORT}`);
     console.error(`MCP endpoint: http://${HOST}:${PORT}/mcp`);
     console.error(`Health check: http://${HOST}:${PORT}/health`);
-    console.error(`Protocol: MCP 2025-06-18 (Streamable HTTP)`);
+    console.error(`Protocol: MCP 2025-11-25 (Streamable HTTP)`);
   })
   .on("error", (err: Error) => {
     console.error(`Server error: ${err}`);

@@ -6,15 +6,14 @@ import {
   getDelegatedResourceV2,
   getDelegatedResourceAccountIndexV2,
 } from "../../../src/core/services/accountResource.js";
-import { getConfiguredPrivateKey } from "../../../src/core/services/wallet.js";
 
 describe("Account Resource Services Integration (Nile)", () => {
-  const hasPrivateKey = !!process.env.TRON_PRIVATE_KEY || !!process.env.TRON_MNEMONIC;
+  const hasWallet = !!process.env.TRON_PRIVATE_KEY || !!process.env.TRON_MNEMONIC
+    || !!(process.env.AGENT_WALLET_DIR && process.env.AGENT_WALLET_PASSWORD);
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "delegateResource should attempt to delegate and return error or tx hash",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       const receiverAddress =
         process.env.TRON_DELEGATEE_ADDRESS || process.env.TRON_ADDRESS || null;
 
@@ -27,7 +26,6 @@ describe("Account Resource Services Integration (Nile)", () => {
 
       try {
         const txId = await delegateResource(
-          privateKey,
           {
             amount: 1_000_000, // 1 TRX in Sun
             receiverAddress,
@@ -46,10 +44,9 @@ describe("Account Resource Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "undelegateResource should attempt to undelegate and return error or tx hash",
     async () => {
-      const privateKey = getConfiguredPrivateKey();
       const receiverAddress =
         process.env.TRON_DELEGATEE_ADDRESS || process.env.TRON_ADDRESS || null;
 
@@ -62,7 +59,6 @@ describe("Account Resource Services Integration (Nile)", () => {
 
       try {
         const txId = await undelegateResource(
-          privateKey,
           {
             amount: 500_000,
             receiverAddress,
@@ -80,7 +76,7 @@ describe("Account Resource Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "getCanDelegatedMaxSize should return max delegatable amount",
     async () => {
       const address = process.env.TRON_ADDRESS;
@@ -100,7 +96,7 @@ describe("Account Resource Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "getDelegatedResourceV2 should return delegated resource details or empty list",
     async () => {
       const from = process.env.TRON_ADDRESS_FROM || process.env.TRON_ADDRESS;
@@ -129,7 +125,7 @@ describe("Account Resource Services Integration (Nile)", () => {
     30000,
   );
 
-  it.runIf(hasPrivateKey)(
+  it.runIf(hasWallet)(
     "getDelegatedResourceAccountIndexV2 should return delegation index",
     async () => {
       const address = process.env.TRON_ADDRESS;
@@ -159,4 +155,3 @@ describe("Account Resource Services Integration (Nile)", () => {
     30000,
   );
 });
-
