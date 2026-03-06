@@ -69,6 +69,26 @@ Key capabilities:
 - **Write Contract**: Execute state-changing functions.
 - **ABI Fetching**: Automatically fetches ABI from the blockchain for verified contracts.
 
+### Governance & Proposals
+
+- **Super Representatives**: List, vote, create/update witnesses, manage brokerage.
+- **Proposals**: List, view, create, approve, and delete governance proposals.
+- **Rewards**: Query and withdraw SR voting rewards.
+
+### Events & Data Queries
+
+- **Contract Events**: Query events by transaction, contract address, or block number.
+- **Account Data**: Transaction history, TRC20 transfers, internal transactions, token balances (via TronGrid).
+- **Contract Data**: Contract transaction history, internal transactions, token holder lists.
+- **Mempool**: View pending transactions and pool size.
+- **Node Info**: List connected nodes and query node details.
+
+### Staking & Resource Delegation (Stake 2.0)
+
+- **Staking**: Freeze/unfreeze TRX for Energy or Bandwidth.
+- **Delegation**: Delegate and undelegate resources to other accounts.
+- **Queries**: Available unfreeze count, withdrawable amounts, delegation details.
+
 ### Wallet & Security
 
 - **Flexible Wallet**: Configure via `TRON_PRIVATE_KEY` or `TRON_MNEMONIC`.
@@ -384,6 +404,73 @@ Opencode:
 | `get_can_delegated_max_size`             | Get max delegatable amount for an address.                     | `address`, `resource`, `network`                  |
 | `get_delegated_resource_v2`              | Get delegation details between two addresses.                  | `fromAddress`, `toAddress`, `network`             |
 | `get_delegated_resource_account_index_v2`| Get who delegated to/from an address.                          | `address`, `network`                             |
+
+#### Governance (Super Representatives)
+
+| Tool Name                  | Description                                                      | Key Parameters                  |
+| :------------------------- | :--------------------------------------------------------------- | :------------------------------ |
+| `list_witnesses`           | Get the full list of all Super Representatives on the network.   | `network`                       |
+| `get_paginated_witnesses`  | Get a paginated list of current active Super Representatives.    | `offset`, `limit`, `network`    |
+| `get_next_maintenance_time`| Get the next SR maintenance (vote tally) time.                   | `network`                       |
+| `get_reward`               | Get unclaimed SR voting reward for an address.                   | `address`, `network`            |
+| `get_brokerage`            | Get SR brokerage ratio (reward split with voters).               | `address`, `network`            |
+| `create_witness`           | Apply to become a Super Representative candidate.                | `url`, `network`                |
+| `update_witness`           | Update Super Representative URL.                                 | `url`, `network`                |
+| `vote_witness`             | Vote for Super Representatives with frozen TRX.                  | `votes`, `network`              |
+| `withdraw_balance`         | Withdraw accumulated SR block rewards.                           | `network`                       |
+| `update_brokerage`         | Update SR brokerage ratio.                                       | `brokerage`, `network`          |
+
+#### Proposals
+
+| Tool Name          | Description                                 | Key Parameters                         |
+| :----------------- | :------------------------------------------ | :------------------------------------- |
+| `list_proposals`   | List all network governance proposals.      | `network`                              |
+| `get_proposal`     | Get details of a specific proposal by ID.   | `proposalId`, `network`               |
+| `create_proposal`  | Create a new governance proposal (SR only). | `parameters`, `network`               |
+| `approve_proposal` | Approve or revoke a proposal (SR only).     | `proposalId`, `hasApproval`, `network` |
+| `delete_proposal`  | Delete a proposal (creator only).           | `proposalId`, `network`               |
+
+#### Events
+
+| Tool Name                       | Description                                           | Key Parameters                           |
+| :------------------------------ | :---------------------------------------------------- | :--------------------------------------- |
+| `get_events_by_transaction_id`  | Get all events emitted by a specific transaction.     | `transactionId`, `onlyConfirmed`, `network` |
+| `get_events_by_contract_address`| Get events emitted by a specific contract.            | `contractAddress`, `eventName`, `network` |
+| `get_events_by_block_number`    | Get all events emitted in a specific block.           | `blockNumber`, `network`                 |
+| `get_events_of_latest_block`    | Get all events from the latest block.                 | `network`                                |
+
+#### Account Data (TronGrid)
+
+| Tool Name                          | Description                                            | Key Parameters                         |
+| :--------------------------------- | :----------------------------------------------------- | :------------------------------------- |
+| `get_account_info`                 | Get account summary from TronGrid.                     | `address`, `network`                   |
+| `get_account_transactions`         | Get transaction history for an account.                | `address`, `limit`, `network`          |
+| `get_account_trc20_transactions`   | Get TRC20 transfer history for an account.             | `address`, `limit`, `network`          |
+| `get_account_internal_transactions`| Get internal transaction history for an account.       | `address`, `limit`, `network`          |
+| `get_account_trc20_balances`       | Get all TRC20 token balances for an account.           | `address`, `network`                   |
+
+#### Contract Data (TronGrid)
+
+| Tool Name                          | Description                                           | Key Parameters                         |
+| :--------------------------------- | :---------------------------------------------------- | :------------------------------------- |
+| `get_contract_transactions`        | Get transaction history for a contract.               | `contractAddress`, `limit`, `network`  |
+| `get_contract_internal_transactions`| Get internal transactions for a contract.            | `contractAddress`, `limit`, `network`  |
+| `get_trc20_token_holders`          | Get holder list for a TRC20 token.                    | `contractAddress`, `limit`, `network`  |
+
+#### Mempool
+
+| Tool Name                       | Description                                              | Key Parameters        |
+| :------------------------------ | :------------------------------------------------------- | :-------------------- |
+| `get_pending_transactions`      | Get transaction IDs in the pending pool (mempool).       | `network`             |
+| `get_transaction_from_pending`  | Get a specific transaction from the pending pool.        | `txId`, `network`     |
+| `get_pending_size`              | Get the current size of the pending transaction pool.    | `network`             |
+
+#### Node
+
+| Tool Name      | Description                                           | Key Parameters |
+| :------------- | :---------------------------------------------------- | :------------- |
+| `list_nodes`   | List all connected node addresses on the network.     | `network`      |
+| `get_node_info`| Get detailed info about the connected full node.      | `network`      |
 
 #### Signing & Security
 
