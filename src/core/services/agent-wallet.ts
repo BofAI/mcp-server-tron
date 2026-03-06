@@ -167,7 +167,28 @@ export async function listAgentWallets(): Promise<
  */
 export function getActiveWalletId(): string | null {
   if (isLegacyMode()) return "default";
+  if (!activeWalletId && process.env.AGENT_WALLET_ID) {
+    return process.env.AGENT_WALLET_ID;
+  }
   return activeWalletId;
+}
+
+/**
+ * Initialize the active wallet on startup. Ensures activeWalletId is set
+ * from AGENT_WALLET_ID env var, or auto-selects the first available wallet.
+ */
+export async function initActiveWallet(): Promise<void> {
+  if (isLegacyMode() || activeWalletId) return;
+  if (process.env.AGENT_WALLET_ID) {
+    activeWalletId = process.env.AGENT_WALLET_ID;
+    return;
+  }
+  if (!isAgentWalletConfigured()) return;
+  const p = getProvider();
+  const wallets = await p.listWallets();
+  if (wallets.length > 0) {
+    activeWalletId = wallets[0].id;
+  }
 }
 
 // ---------------------------------------------------------------------------
