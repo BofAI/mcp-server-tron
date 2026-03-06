@@ -173,7 +173,7 @@ app.get("/health", (_req: Request, res: Response) => {
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     name: "mcp-server-tron",
-    version: "1.1.3",
+    version: "1.1.4",
     protocol: "MCP 2025-11-25",
     transport: "Streamable HTTP",
     endpoints: {
