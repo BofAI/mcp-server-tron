@@ -141,26 +141,24 @@ Choose **one** of the following modes. If none is configured, the server runs in
 
 **Option 1: Agent-Wallet Mode (Recommended)**
 
-Private keys are encrypted at rest (Keystore V3: scrypt + AES-128-CTR) and never exposed in environment variables.
+Private keys are encrypted at rest and never exposed in environment variables.
 
-> **Prerequisites**: Install and configure [agent-wallet](https://github.com/BofAI/agent-wallet) first:
-> ```bash
-> agent-wallet init
-> agent-wallet add
-> ```
+> **Prerequisites**: Install and configure [agent-wallet](https://github.com/BofAI/agent-wallet/blob/main/doc/getting-started.md)
 
 ```bash
 export AGENT_WALLET_PASSWORD="<YOUR_MASTER_PASSWORD>"
 export AGENT_WALLET_DIR="<YOUR_WALLET_DIR>"  # Optional, default: ~/.agent-wallet
 ```
 
-**Option 2: Private Key (Legacy)**
+> `AGENT_WALLET_PASSWORD` must match the master password used during `agent-wallet`. If not set, agent-wallet mode is disabled and the server falls back to legacy mode or read-only mode.
+
+**Option 2: Private Key**
 
 ```bash
 export TRON_PRIVATE_KEY="<YOUR_PRIVATE_KEY_HERE>"
 ```
 
-**Option 3: Mnemonic Phrase (Legacy)**
+**Option 3: Mnemonic Phrase**
 
 ```bash
 export TRON_MNEMONIC="<WORD1> <WORD2> ... <WORD12>"
@@ -215,24 +213,23 @@ npx vitest tests/core/services/services.test.ts        # Services integration
 
 ### Client Configuration
 
-To use this server with MCP clients like Claude Desktop, Cursor, or Google Antigravity, you need to add it to your configuration file.
+#### Option A: Quick Start (Recommended)
 
-#### 1. Locate your Configuration File
+Runs the latest version directly from npm via stdio transport.
 
-| Application            | OS      | Config Path                                                       |
-| :--------------------- | :------ | :---------------------------------------------------------------- |
-| **Claude Desktop**     | macOS   | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-|                        | Windows | `%APPDATA%\Claude\claude_desktop_config.json`                     |
-| **Cursor**             | All     | Project root: `.cursor/mcp.json`                                  |
-| **Google Antigravity** | All     | `~/.config/antigravity/mcp.json`                                  |
-| **Opencode**           | All     | `~/.config/opencode/mcp.json`                                     |
+**Claude Code:**
 
-#### 2. Add Server Definition
+```bash
+claude mcp add mcp-server-tron -- npx -y @bankofai/mcp-server-tron
+```
 
-Choose one of the following methods to add to your `mcpServers` object.
+With environment variables:
 
-**Option A: Quick Start (Recommended)**
-Runs the latest version directly from npm.
+```bash
+claude mcp add -e AGENT_WALLET_PASSWORD=xxx -e TRONGRID_API_KEY=xxx mcp-server-tron -- npx -y @bankofai/mcp-server-tron
+```
+
+**Cursor** (`.cursor/mcp.json`):
 
 ```json
 {
@@ -249,28 +246,17 @@ Runs the latest version directly from npm.
 }
 ```
 
-**Option B: Local Development**
-For developers running from the cloned repository.
+#### Option B: Official Hosted Server (Remote)
 
-```json
-{
-  "mcpServers": {
-    "mcp-server-tron": {
-      "command": "npx",
-      "args": ["tsx", "/ABSOLUTE/PATH/TO/mcp-server-tron/src/index.ts"],
-      "env": {
-        "AGENT_WALLET_PASSWORD": "YOUR_PASSWORD (Or set in system env)",
-        "TRONGRID_API_KEY": "YOUR_KEY_HERE (Or set in system env)"
-      }
-    }
-  }
-}
-```
-
-**Option C: Official Hosted Server (Remote)**
 Connect to the official hosted server at `https://tron-mcp-server.bankofai.io`. No installation required, readonly mode.
 
-Claude Desktop / Cursor / Claude Code:
+**Claude Code:**
+
+```bash
+claude mcp add -transport http mcp-server-tron https://tron-mcp-server.bankofai.io/mcp
+```
+
+**Cursor** (`.cursor/mcp.json`):
 
 ```json
 {
@@ -281,33 +267,6 @@ Claude Desktop / Cursor / Claude Code:
   }
 }
 ```
-
-Google Antigravity:
-
-```json
-{
-  "mcpServers": {
-    "mcp-server-tron": {
-      "serverUrl": "https://tron-mcp-server.bankofai.io/mcp"
-    }
-  }
-}
-```
-
-Opencode:
-
-```json
-{
-  "mcp": {
-    "mcp-server-tron": {
-      "type": "remote",
-      "url": "https://tron-mcp-server.bankofai.io/mcp"
-    }
-  }
-}
-```
-
-**Important**: We recommend omitting the `env` section if you have already set these variables in your system environment. If your MCP client doesn't inherit system variables, use placeholders or ensure the config file is not shared or committed to version control.
 
 ## API Reference
 

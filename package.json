@@ -53,7 +53,7 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@bankofai/agent-wallet": "^2.0.0",
+    "@bankofai/agent-wallet": "^2.1.0",
     "@modelcontextprotocol/sdk": "^1.22.0",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
