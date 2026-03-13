@@ -165,7 +165,7 @@ export TRON_MNEMONIC="<WORD1> <WORD2> ... <WORD12>"
 export TRON_ACCOUNT_INDEX="0"  # Optional, default: 0
 ```
 
-> **Security Note**: Static modes store keys in plaintext environment variables. Agent-wallet mode is strongly recommended for production use.
+> **Security Note**: Static modes expose keys in plaintext. **Only keep small amounts of funds** in these wallets — large balances carry a real **risk of theft**. Use Agent-Wallet Mode (Option 1) for any significant funds.
 
 > See [`.env.example`](.env.example) for a complete list of all supported environment variables.
 
@@ -471,7 +471,8 @@ claude mcp add -transport http mcp-server-tron https://tron-mcp-server.bankofai.
 ## Security Considerations
 
 - **Private Keys & Mnemonics**: **NEVER** save your sensitive wallet information in plain text configuration files (like `mcp.json`). These files are often unencrypted and can be accidentally shared or committed to git. Use system environment variables which are more secure.
-- **Exposure**: If you are using a shared machine, be aware that environment variables might be visible to other users.
+- **Fund Safety (Static Mode)**: If you use `TRON_PRIVATE_KEY` or `TRON_MNEMONIC`, keys are stored in plaintext environment variables. This carries a **real risk of fund theft** — environment variables can be leaked via shell history, process listings, or log files. **Only keep a small amount of funds** in these wallets. For wallets holding any significant value, always use [Agent-Wallet Mode](#option-1-agent-wallet-mode-recommended).
+- **Shared Machines**: Be aware that on shared systems, environment variables might be visible to other users via `/proc` or system monitoring tools.
 - **Testnets**: Always test on Nile or Shasta before performing operations on Mainnet.
 - **Approvals**: Be cautious when approving token allowances via `write_contract`. Only approve what is necessary.
 
