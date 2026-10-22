@@ -103,8 +103,11 @@ Key capabilities:
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20.0.0 or higher
+- [Node.js](https://nodejs.org/) 22.23.4+ or 24.22.1+
 - Optional: [TronGrid API key](https://www.trongrid.io/) to avoid rate limiting on Mainnet.
+
+Node.js 20 and earlier 22.x/24.x releases are unsupported because they do not contain the
+October 2026 security fixes. Other major versions are unsupported until they pass the CI matrix.
 
 ## Installation
 
