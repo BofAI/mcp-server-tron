@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "24.22.1"
           registry-url: "https://registry.npmjs.org/"
 
       - name: Check and Update npm
@@ -32,6 +32,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Enforce secure Node.js baseline
+        run: |
+          npm run security:node-baseline
+          npm run security:node-runtime
 
       - name: Run lint
         run: npm run lint

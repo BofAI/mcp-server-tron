@@ -11,6 +11,10 @@ concurrency:
 jobs:
   lint-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["22.23.4", "24.22.1"]
     permissions:
       contents: read
 
@@ -21,11 +25,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Enforce secure Node.js baseline
+        run: |
+          npm run security:node-baseline
+          npm run security:node-runtime
 
       - name: Run lint
         run: npm run lint
