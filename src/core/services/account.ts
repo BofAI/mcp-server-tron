@@ -131,7 +131,7 @@ export async function getDelegatedResource(
   fromAddress: string,
   toAddress: string,
   network = "mainnet",
-) {
+): ReturnType<TronWeb["trx"]["getDelegatedResourceV2"]> {
   const tronWeb = getTronWeb(network);
   try {
     const result = await tronWeb.trx.getDelegatedResourceV2(fromAddress, toAddress);
