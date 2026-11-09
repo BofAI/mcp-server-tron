@@ -10,48 +10,12 @@ npm-debug.log
 **/.env*
 !**/.env.example
 
-# Cloud credentials, wallet stores and local audit material
+# AWS credentials, audit material and agent-wallet configuration
 **/.aws
-**/.ssh
-**/.azure
-**/.config
-**/.docker
 **/.audit
 **/.agent-wallet
-**/agent-wallet
-**/wallet
-**/wallets
-**/keystore
-**/keystores
-**/credentials
-**/credentials.json
-**/wallet.json
-**/wallet-config.json
+**/wallets_config.json
 
-# Private keys and key stores
+# Private key files
 **/*.pem
 **/*.key
-**/*.p12
-**/*.pfx
-**/*.jks
-**/id_rsa*
-**/id_ed25519*
-**/id_ecdsa*
-**/private-key*
-**/private_key*
-**/mnemonic.txt
-**/seed.txt
-
-# Developer-specific configuration and caches
-**/.npmrc
-**/.netrc
-**/.git-credentials
-**/.codex
-**/.agents
-**/.claude
-**/.idea
-**/.vscode
-**/.DS_Store
-**/*.local.*
-**/.cache
-mcp_example.json
