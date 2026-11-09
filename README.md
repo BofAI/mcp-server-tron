@@ -173,6 +173,13 @@ docker build -t mcp-server-tron:test .
 
 Run the container with local logs mounted:
 
+The container runs as `node` (UID/GID 1000:1000). Application files are owned by
+root; only `/app/logs` is writable by the service within `/app`. When bind-mounting
+logs, prepare the host directory with permissions that allow UID 1000 to write.
+Do not mount host credential directories or the Docker socket. Host log collectors
+must restrict file access and avoid following links from service-writable log files
+to host credential files; container file ownership alone cannot enforce that boundary.
+
 ```bash
 docker run -d \
   --name mcp-tron \
