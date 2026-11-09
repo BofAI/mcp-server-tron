@@ -21,6 +21,7 @@ async function startServer(options: { readOnly?: boolean } = {}) {
         version,
       },
       {
+        maxToolInputElements: 10_000,
         capabilities: {
           tools: {
             listChanged: true,

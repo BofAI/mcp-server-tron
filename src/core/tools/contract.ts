@@ -18,13 +18,13 @@ export function registerContractTools(registerTool: RegisterToolFn) {
               z.boolean(),
               z.array(z.string()), // String array
               z.array(z.number()), // Number array
-              z.record(z.unknown()), // Object (tuple)
+              z.record(z.string(), z.unknown()), // Object (tuple)
             ]),
           )
           .optional()
           .describe("Function arguments (supports arrays and objects for complex types)"),
         abi: z
-          .array(z.record(z.unknown()))
+          .array(z.record(z.string(), z.unknown()))
           .optional()
           .describe(
             "Optional contract ABI array. If not provided, will fetch from chain. Use for contracts with incomplete on-chain ABI.",
@@ -233,12 +233,14 @@ export function registerContractTools(registerTool: RegisterToolFn) {
                     z.boolean(),
                     z.array(z.string()), // String array
                     z.array(z.number()), // Number array
-                    z.record(z.unknown()), // Object (tuple)
+                    z.record(z.string(), z.unknown()), // Object (tuple)
                   ]),
                 )
                 .optional()
                 .describe("Function arguments (supports arrays and objects for complex types)"),
-              abi: z.array(z.record(z.unknown())).describe("Function ABI (required for multicall)"),
+              abi: z
+                .array(z.record(z.string(), z.unknown()))
+                .describe("Function ABI (required for multicall)"),
               allowFailure: z
                 .boolean()
                 .optional()
@@ -329,13 +331,13 @@ export function registerContractTools(registerTool: RegisterToolFn) {
               z.boolean(),
               z.array(z.string()), // String array
               z.array(z.number()), // Number array
-              z.record(z.unknown()), // Object (tuple)
+              z.record(z.string(), z.unknown()), // Object (tuple)
             ]),
           )
           .optional()
           .describe("Function arguments (supports arrays and objects for complex types)"),
         abi: z
-          .array(z.record(z.unknown()))
+          .array(z.record(z.string(), z.unknown()))
           .optional()
           .describe(
             "Optional contract ABI array. If not provided, will fetch from chain. Use for contracts with incomplete on-chain ABI.",
@@ -406,7 +408,9 @@ export function registerContractTools(registerTool: RegisterToolFn) {
     {
       description: "Deploy a smart contract to the TRON network using ABI and Bytecode.",
       inputSchema: {
-        abi: z.array(z.record(z.unknown())).describe("The contract ABI (array of objects)"),
+        abi: z
+          .array(z.record(z.string(), z.unknown()))
+          .describe("The contract ABI (array of objects)"),
         bytecode: z.string().describe("The compiled contract bytecode (hex string)"),
         args: z
           .array(
@@ -416,7 +420,7 @@ export function registerContractTools(registerTool: RegisterToolFn) {
               z.boolean(),
               z.array(z.string()), // String array
               z.array(z.number()), // Number array
-              z.record(z.unknown()), // Object (tuple)
+              z.record(z.string(), z.unknown()), // Object (tuple)
             ]),
           )
           .optional()

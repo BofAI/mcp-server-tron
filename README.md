@@ -163,6 +163,16 @@ npm start -- --readonly
 npm run start:http
 ```
 
+HTTP requests accept uncompressed JSON up to 1 MiB. Tool arguments are limited to
+10,000 array elements and object keys in total, checked before schema validation.
+Compressed request bodies return HTTP 415; oversized bodies return HTTP 413.
+
+Security dependency overrides keep TronWeb's Axios on the patched 1.x release,
+agent-wallet's configuration parser on the same patched Zod 4 used by this server,
+and typescript-estree's minimatch on the patched release. These overrides cross
+upstream version constraints; wallet configuration and lint compatibility are
+covered by validation and must be rechecked when updating the parent packages.
+
 ### Docker
 
 Build the image:

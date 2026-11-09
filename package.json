@@ -49,19 +49,30 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1",
-    "vitest": "^4.0.17"
+    "vitest": "^4.1.12"
   },
   "peerDependencies": {
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@bankofai/agent-wallet": "^2.3.0",
-    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@bankofai/agent-wallet": "^2.4.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "tronweb": "6.5.1",
-    "zod": "^3.24.3"
+    "zod": "^4.6.7"
+  },
+  "overrides": {
+    "@bankofai/agent-wallet": {
+      "zod": "$zod"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    },
+    "tronweb": {
+      "axios": "^1.21.0"
+    }
   },
   "keywords": [
     "mcp",
