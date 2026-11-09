@@ -2,10 +2,11 @@ FROM node:24.22.1-bookworm-slim@sha256:1681862882da07ee5476fee047bcf34138833f1df
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY . .
+COPY tsconfig.json ./
+COPY src/ ./src/
 RUN npm run build
 
 FROM node:24.22.1-bookworm-slim@sha256:1681862882da07ee5476fee047bcf34138833f1df42633bb25bcb0f438d5bf3d AS runtime
@@ -15,7 +16,7 @@ WORKDIR /app
 RUN groupmod -n ec2-user node && \
     usermod -l ec2-user node
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/build ./build
