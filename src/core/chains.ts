@@ -14,7 +14,7 @@ export interface NetworkConfig {
   explorer: string;
 }
 
-const BOA_MAINNET_HOST = "https://hptg.bankofai.io";
+const FALLBACK_MAINNET_HOST = "https://tg.ops.sunpump.xyz";
 
 function isTronGridApiKeyConfigured(): boolean {
   const apiKey = process.env.TRONGRID_API_KEY;
@@ -56,9 +56,9 @@ export function getNetworkConfig(network: string = DEFAULT_NETWORK): NetworkConf
     if (resolved === TronNetwork.Mainnet && !isTronGridApiKeyConfigured()) {
       return {
         ...NETWORKS[TronNetwork.Mainnet],
-        fullNode: BOA_MAINNET_HOST,
-        solidityNode: BOA_MAINNET_HOST,
-        eventServer: BOA_MAINNET_HOST,
+        fullNode: FALLBACK_MAINNET_HOST,
+        solidityNode: FALLBACK_MAINNET_HOST,
+        eventServer: FALLBACK_MAINNET_HOST,
       };
     }
     return NETWORKS[resolved];
@@ -73,9 +73,9 @@ export function getNetworkConfig(network: string = DEFAULT_NETWORK): NetworkConf
     if (!isTronGridApiKeyConfigured()) {
       return {
         ...NETWORKS[TronNetwork.Mainnet],
-        fullNode: BOA_MAINNET_HOST,
-        solidityNode: BOA_MAINNET_HOST,
-        eventServer: BOA_MAINNET_HOST,
+        fullNode: FALLBACK_MAINNET_HOST,
+        solidityNode: FALLBACK_MAINNET_HOST,
+        eventServer: FALLBACK_MAINNET_HOST,
       };
     }
     return NETWORKS[TronNetwork.Mainnet];

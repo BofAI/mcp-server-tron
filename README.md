@@ -130,7 +130,7 @@ npm install
 
 - `TRONGRID_API_KEY`: (Optional) Your TronGrid API key.
   - **Why**: TRON mainnet RPCs have strict rate limits. When `TRONGRID_API_KEY` is set (and non-empty), the server uses `https://api.trongrid.io` as the default RPC hosts.
-  - **Fallback**: When `TRONGRID_API_KEY` is not set, the server uses `https://hptg.bankofai.io` as the default RPC hosts for `mainnet`.
+  - **Fallback**: When `TRONGRID_API_KEY` is not set, the server uses `https://tg.ops.sunpump.xyz` as the default RPC hosts for `mainnet`.
   - **Usage**:
     ```bash
     export TRONGRID_API_KEY="<YOUR_TRONGRID_API_KEY_HERE>"
@@ -163,6 +163,16 @@ npm start -- --readonly
 npm run start:http
 ```
 
+HTTP requests accept uncompressed JSON up to 1 MiB. Tool arguments are limited to
+10,000 array elements and object keys in total, checked before schema validation.
+Compressed request bodies return HTTP 415; oversized bodies return HTTP 413.
+
+Security dependency overrides keep TronWeb's Axios on the patched 1.x release,
+agent-wallet's configuration parser on the same patched Zod 4 used by this server,
+and typescript-estree's minimatch on the patched release. These overrides cross
+upstream version constraints; wallet configuration and lint compatibility are
+covered by validation and must be rechecked when updating the parent packages.
+
 ### Docker
 
 Build the image:
@@ -172,6 +182,13 @@ docker build -t mcp-server-tron:test .
 ```
 
 Run the container with local logs mounted:
+
+The container runs as `node` (UID/GID 1000:1000). Application files are owned by
+root; only `/app/logs` is writable by the service within `/app`. When bind-mounting
+logs, prepare the host directory with permissions that allow UID 1000 to write.
+Do not mount host credential directories or the Docker socket. Host log collectors
+must restrict file access and avoid following links from service-writable log files
+to host credential files; container file ownership alone cannot enforce that boundary.
 
 ```bash
 docker run -d \

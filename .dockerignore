@@ -5,3 +5,17 @@ logs
 .github
 coverage
 npm-debug.log
+
+# Environment files (keep the non-secret template)
+**/.env*
+!**/.env.example
+
+# AWS credentials, audit material and agent-wallet configuration
+**/.aws
+**/.audit
+**/.agent-wallet
+**/wallets_config.json
+
+# Private key files
+**/*.pem
+**/*.key

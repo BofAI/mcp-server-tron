@@ -10,7 +10,8 @@ export type HttpAppContext = {
 
 export function createHttpApp(options: { readOnly?: boolean } = {}): HttpAppContext {
   const app = express();
-  app.use(express.json({ limit: "10mb" })); // Prevent DoS attacks with huge payloads
+  // Parse only bounded, uncompressed JSON before passing it to the MCP SDK.
+  app.use(express.json({ limit: "1mb", inflate: false }));
 
   app.post("/mcp", async (req: Request, res: Response) => {
     console.log(`Received POST /mcp request from ${req.ip}`);
