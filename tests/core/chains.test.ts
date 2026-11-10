@@ -8,7 +8,7 @@ import {
 } from "../../src/core/chains";
 
 describe("Chains", () => {
-  const BOA_MAINNET_HOST = "https://hptg.bankofai.io";
+  const FALLBACK_MAINNET_HOST = "https://tg.ops.sunpump.xyz";
   const originalTronGridApiKey = process.env.TRONGRID_API_KEY;
   const setEnv = (value: string | undefined) => {
     if (value === undefined) {
@@ -31,13 +31,13 @@ describe("Chains", () => {
     expect(networks).toEqual(["mainnet", "nile", "shasta"]);
   });
 
-  it("should use hptg host for mainnet when TRONGRID_API_KEY not set", () => {
+  it("should use fallback host for mainnet when TRONGRID_API_KEY not set", () => {
     setEnv(undefined);
     const config = getNetworkConfig(TronNetwork.Mainnet);
     expect(config.name).toBe("Mainnet");
-    expect(config.fullNode).toBe(BOA_MAINNET_HOST);
-    expect(config.solidityNode).toBe(BOA_MAINNET_HOST);
-    expect(config.eventServer).toBe(BOA_MAINNET_HOST);
+    expect(config.fullNode).toBe(FALLBACK_MAINNET_HOST);
+    expect(config.solidityNode).toBe(FALLBACK_MAINNET_HOST);
+    expect(config.eventServer).toBe(FALLBACK_MAINNET_HOST);
   });
 
   it("should use api.trongrid.io for mainnet when TRONGRID_API_KEY is set", () => {
@@ -63,16 +63,16 @@ describe("Chains", () => {
 
   it("should resolve aliases correctly", () => {
     setEnv(undefined);
-    const hptgMainnet = getNetworkConfig("tron");
-    expect(hptgMainnet.fullNode).toBe(BOA_MAINNET_HOST);
-    const hptgMainnet2 = getNetworkConfig("trx");
-    expect(hptgMainnet2.fullNode).toBe(BOA_MAINNET_HOST);
+    const mainnet = getNetworkConfig("tron");
+    expect(mainnet.fullNode).toBe(FALLBACK_MAINNET_HOST);
+    const mainnetAlias = getNetworkConfig("trx");
+    expect(mainnetAlias.fullNode).toBe(FALLBACK_MAINNET_HOST);
     expect(getNetworkConfig("testnet")).toBe(NETWORKS[TronNetwork.Nile]);
   });
 
   it("should return correct RPC URL", () => {
     setEnv(undefined);
-    expect(getRpcUrl("mainnet")).toBe(BOA_MAINNET_HOST);
+    expect(getRpcUrl("mainnet")).toBe(FALLBACK_MAINNET_HOST);
     expect(getRpcUrl("nile")).toBe("https://nile.trongrid.io");
   });
 
@@ -86,6 +86,6 @@ describe("Chains", () => {
     setEnv(undefined);
     const config = getNetworkConfig();
     expect(config.name).toBe("Mainnet");
-    expect(config.fullNode).toBe(BOA_MAINNET_HOST);
+    expect(config.fullNode).toBe(FALLBACK_MAINNET_HOST);
   });
 });
