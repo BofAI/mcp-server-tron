@@ -128,9 +128,14 @@ npm install
 
 #### Network Configuration
 
+- `MCP_MAINNET_RPC_URL`: (Optional) Deployment-specific mainnet RPC base URL. Takes precedence over automatic host selection and applies to the full node, solidity node, and event server for `mainnet`, `tron`, and `trx`. Nile and Shasta are unaffected. Only absolute HTTP/HTTPS URLs without credentials, query strings, or fragments are accepted.
+  - **Production**: Leave unset to retain the original production default.
+  - **Test deployment**: Set `MCP_MAINNET_RPC_URL=https://tg.ops.sunpump.xyz` (Docker: `-e MCP_MAINNET_RPC_URL=https://tg.ops.sunpump.xyz`).
+  - Configure this through the deployment environment, not MCP tool arguments. Restart the service after changing it because RPC clients are cached.
 - `TRONGRID_API_KEY`: (Optional) Your TronGrid API key.
-  - **Why**: TRON mainnet RPCs have strict rate limits. When `TRONGRID_API_KEY` is set (and non-empty), the server uses `https://api.trongrid.io` as the default RPC hosts.
-  - **Fallback**: When `TRONGRID_API_KEY` is not set, the server uses `https://tg.ops.sunpump.xyz` as the default RPC hosts for `mainnet`.
+  - **Why**: TRON mainnet RPCs have strict rate limits. When `TRONGRID_API_KEY` is set (and non-empty) and no RPC override is configured, the server uses `https://api.trongrid.io` as the default RPC hosts.
+  - **Fallback**: When neither an RPC override nor `TRONGRID_API_KEY` is set, the server uses `https://hptg.bankofai.io` as the default RPC hosts for `mainnet`.
+  - **Credential handling**: The API key is sent only to the official HTTPS TronGrid origins, never to a custom RPC host.
   - **Usage**:
     ```bash
     export TRONGRID_API_KEY="<YOUR_TRONGRID_API_KEY_HERE>"

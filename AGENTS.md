@@ -77,6 +77,7 @@ This document provides essential information for AI agents working on this repos
 
 - **Sensitive Data**: NEVER hardcode private keys or mnemonics.
 - **Env Vars**:
+  - `MCP_MAINNET_RPC_URL`: Optional deployment-only mainnet RPC override; takes precedence over automatic host selection. Never accept this setting from tool inputs. TronGrid credentials are sent only to official HTTPS TronGrid origins.
   - `TRONGRID_API_KEY`: Optional but recommended for Mainnet.
   - This repository no longer reads or maps legacy `TRON_*` wallet variables.
   - Wallet setup should follow `agent-wallet` file-backed configuration and the SDK-supported `AGENT_WALLET_*` settings.
