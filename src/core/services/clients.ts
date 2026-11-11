@@ -3,6 +3,11 @@ import { getNetworkConfig } from "../chains.js";
 
 // Cache for clients to avoid recreating them for each request
 const clientCache = new Map<string, TronWeb>();
+const TRONGRID_ORIGINS = new Set([
+  "https://api.trongrid.io",
+  "https://nile.trongrid.io",
+  "https://api.shasta.trongrid.io",
+]);
 
 /**
  * Get a TronWeb instance for a specific network
@@ -17,7 +22,10 @@ export function getTronWeb(network = "mainnet"): TronWeb {
 
   // Create a new client
   const config = getNetworkConfig(network);
-  const apiKey = process.env.TRONGRID_API_KEY;
+  // Never forward the TronGrid credential to a custom RPC destination.
+  const apiKey = TRONGRID_ORIGINS.has(new URL(config.fullNode).origin)
+    ? process.env.TRONGRID_API_KEY
+    : undefined;
 
   const client = new TronWeb({
     fullHost: config.fullNode,

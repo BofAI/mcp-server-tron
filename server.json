@@ -6,12 +6,12 @@
     "url": "https://github.com/BofAI/mcp-server-tron",
     "source": "github"
   },
-  "version": "1.1.7",
+  "version": "1.1.10",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@bankofai/mcp-server-tron",
-      "version": "1.1.7",
+      "version": "1.1.10",
       "transport": {
         "type": "stdio"
       },

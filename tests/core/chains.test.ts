@@ -1,15 +1,19 @@
-import { describe, expect, it, afterAll } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getNetworkConfig,
   getRpcUrl,
   getSupportedNetworks,
   TronNetwork,
   NETWORKS,
-} from "../../src/core/chains";
+} from "../../src/core/chains.js";
 
 describe("Chains", () => {
-  const FALLBACK_MAINNET_HOST = "https://tg.ops.sunpump.xyz";
-  const originalTronGridApiKey = process.env.TRONGRID_API_KEY;
+  const FALLBACK_MAINNET_HOST = "https://hptg.bankofai.io";
+  beforeEach(() => {
+    vi.stubEnv("TRONGRID_API_KEY", undefined);
+    vi.stubEnv("MCP_MAINNET_RPC_URL", undefined);
+  });
+  afterEach(() => vi.unstubAllEnvs());
   const setEnv = (value: string | undefined) => {
     if (value === undefined) {
       delete process.env.TRONGRID_API_KEY;
@@ -17,14 +21,6 @@ describe("Chains", () => {
       process.env.TRONGRID_API_KEY = value;
     }
   };
-
-  afterAll(() => {
-    if (originalTronGridApiKey === undefined) {
-      delete process.env.TRONGRID_API_KEY;
-    } else {
-      process.env.TRONGRID_API_KEY = originalTronGridApiKey;
-    }
-  });
 
   it("should export supported networks", () => {
     const networks = getSupportedNetworks();
@@ -45,6 +41,50 @@ describe("Chains", () => {
     const config = getNetworkConfig(TronNetwork.Mainnet);
     expect(config.name).toBe("Mainnet");
     expect(config.fullNode).toBe("https://api.trongrid.io");
+  });
+
+  it.each(["mainnet", "tron", "trx", "MAINNET"])(
+    "should prioritize a deployment RPC override for %s",
+    (network) => {
+      vi.stubEnv("MCP_MAINNET_RPC_URL", " https://tg.ops.sunpump.xyz/ ");
+      setEnv("dummy_key");
+      const config = getNetworkConfig(network);
+      expect(config.fullNode).toBe("https://tg.ops.sunpump.xyz");
+      expect(config.solidityNode).toBe(config.fullNode);
+      expect(config.eventServer).toBe(config.fullNode);
+      expect(getRpcUrl(network)).toBe(config.fullNode);
+    },
+  );
+
+  it("should leave testnets unchanged when a mainnet override is configured", () => {
+    vi.stubEnv("MCP_MAINNET_RPC_URL", "https://tg.ops.sunpump.xyz");
+    expect(getNetworkConfig("nile")).toEqual(NETWORKS.nile);
+    expect(getNetworkConfig("testnet")).toEqual(NETWORKS.nile);
+    expect(getNetworkConfig("shasta")).toEqual(NETWORKS.shasta);
+  });
+
+  it("should ignore an empty override and retain default selection", () => {
+    vi.stubEnv("MCP_MAINNET_RPC_URL", "   ");
+    expect(getRpcUrl()).toBe(FALLBACK_MAINNET_HOST);
+    setEnv("dummy_key");
+    expect(getRpcUrl()).toBe("https://api.trongrid.io");
+  });
+
+  it("should support an operator-configured HTTP RPC base path", () => {
+    vi.stubEnv("MCP_MAINNET_RPC_URL", "http://localhost:8090/rpc/");
+    expect(getRpcUrl()).toBe("http://localhost:8090/rpc");
+  });
+
+  it.each([
+    "not-a-url",
+    "ftp://rpc.example",
+    "file:///tmp/rpc",
+    "https://user:password@rpc.example",
+    "https://rpc.example?key=value",
+    "https://rpc.example#fragment",
+  ])("should reject invalid or ambiguous RPC override %s", (url) => {
+    vi.stubEnv("MCP_MAINNET_RPC_URL", url);
+    expect(() => getNetworkConfig()).toThrow("MCP_MAINNET_RPC_URL");
   });
 
   it("should get network config for nile", () => {
