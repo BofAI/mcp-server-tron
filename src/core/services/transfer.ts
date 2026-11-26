@@ -1,6 +1,24 @@
 import { getTronWeb } from "./clients.js";
 import { getOwnerAddress, buildSignBroadcast, signTransaction } from "./agent-wallet.js";
-import { utils } from "./utils.js";
+import { parseTRC20Decimals, utils } from "./utils.js";
+
+const TRANSFER_METADATA_TIMEOUT_MS = 2_000;
+
+async function readTransferMetadata(
+  tronWeb: ReturnType<typeof getTronWeb>,
+  tokenAddress: string,
+  amount: string,
+  signal: AbortSignal,
+) {
+  const contract = await tronWeb.contract().at(tokenAddress);
+  signal.throwIfAborted();
+  const decimals = parseTRC20Decimals(await contract.methods.decimals().call());
+  signal.throwIfAborted();
+  const symbol = await contract.methods.symbol().call();
+  signal.throwIfAborted();
+  const formatted = (Number(BigInt(amount)) / Number(10n ** BigInt(decimals))).toString();
+  return { token: { symbol, decimals }, formatted };
+}
 
 /**
  * Transfer TRX to an address
@@ -61,25 +79,24 @@ export async function transferTRC20(
 
     const txId = broadcastResult.txid || (transaction as any).txID;
 
-    // Fetch token info for return (using read-only client)
-    const contract = await tronWeb.contract().at(tokenAddress);
-    const symbol = await contract.methods.symbol().call();
-    const decimals = await contract.methods.decimals().call();
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<null>((resolve) => {
+      timeout = setTimeout(() => {
+        controller.abort();
+        resolve(null);
+      }, TRANSFER_METADATA_TIMEOUT_MS);
+    });
+    const metadata = await Promise.race([
+      readTransferMetadata(tronWeb, tokenAddress, amount, controller.signal).catch(() => null),
+      deadline,
+    ]).finally(() => clearTimeout(timeout));
 
-    const decimalsNum = Number(decimals);
-    const divisor = BigInt(10) ** BigInt(decimalsNum);
-    const formatted = (Number(BigInt(amount)) / Number(divisor)).toString();
-
+    // A metadata failure must not turn an accepted broadcast into a failed transfer.
     return {
       txHash: txId,
-      amount: {
-        raw: amount,
-        formatted: formatted,
-      },
-      token: {
-        symbol: symbol,
-        decimals: decimalsNum,
-      },
+      amount: { raw: amount, formatted: metadata?.formatted ?? null },
+      token: metadata?.token ?? null,
     };
   } catch (error: any) {
     throw new Error(`Failed to transfer TRC20: ${error.message}`);

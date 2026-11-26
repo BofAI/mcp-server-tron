@@ -90,10 +90,15 @@ export function registerTransferTools(registerTool: RegisterToolFn) {
                   from: senderAddress,
                   to,
                   amount: result.amount.formatted,
-                  symbol: result.token.symbol,
-                  decimals: result.token.decimals,
+                  symbol: result.token?.symbol,
+                  decimals: result.token?.decimals,
                   txHash: result.txHash,
                   message: "Transaction sent.",
+                  ...(result.token === null && {
+                    rawAmount: result.amount.raw,
+                    warning:
+                      "Token metadata unavailable. Use the transaction hash to check status.",
+                  }),
                 },
                 null,
                 2,

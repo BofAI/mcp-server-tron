@@ -7,8 +7,14 @@ const HOST = process.env.MCP_HOST || "0.0.0.0";
 
 console.log(`Configured to listen on ${HOST}:${PORT}`);
 
-const isReadOnly = process.argv.includes("--readonly") || process.argv.includes("-r");
-const { app, shutdown } = createHttpApp({ readOnly: isReadOnly });
+const isReadOnly =
+  !process.argv.includes("--allow-write") ||
+  process.argv.includes("--readonly") ||
+  process.argv.includes("-r");
+const { app, shutdown } = createHttpApp({
+  readOnly: isReadOnly,
+  writeToken: process.env.MCP_HTTP_WRITE_TOKEN,
+});
 
 // Handle process termination gracefully
 process.on("SIGINT", async () => {

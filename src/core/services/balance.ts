@@ -1,5 +1,5 @@
 import { getTronWeb } from "./clients.js";
-import { utils } from "./utils.js";
+import { parseTRC20Decimals, utils } from "./utils.js";
 
 /**
  * Get TRX balance for an address
@@ -31,11 +31,11 @@ export async function getTRC20Balance(
     const contract = await tronWeb.contract().at(tokenAddress);
     // TRC20 standard functions
     const balance = await contract.methods.balanceOf(walletAddress).call();
-    const decimals = await contract.methods.decimals().call();
+    const decimals = parseTRC20Decimals(await contract.methods.decimals().call());
     const symbol = await contract.methods.symbol().call();
 
     const balanceBigInt = BigInt(balance.toString());
-    const divisor = BigInt(10) ** BigInt(decimals.toString());
+    const divisor = BigInt(10) ** BigInt(decimals);
 
     // Basic formatting
     const formatted = (Number(balanceBigInt) / Number(divisor)).toString();
@@ -45,7 +45,7 @@ export async function getTRC20Balance(
       formatted: formatted,
       token: {
         symbol: symbol,
-        decimals: Number(decimals),
+        decimals,
         address: tokenAddress,
       },
     };

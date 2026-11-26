@@ -2,6 +2,19 @@
 
 import { TronWeb } from "tronweb";
 
+export function parseTRC20Decimals(value: unknown): number {
+  if (typeof value === "bigint" || typeof value === "number" || typeof value === "string") {
+    const digits = String(value);
+    if (digits.length > 0 && digits.length <= 3 && !/\D/.test(digits)) {
+      const decimals = Number(digits);
+      if (decimals <= 255) {
+        return decimals;
+      }
+    }
+  }
+  throw new Error("TRC20 decimals must be an integer from 0 to 255");
+}
+
 // Note: TronWeb handles most of these conversions internally or via utility methods.
 // We are wrapping them here for consistent API usage across the application.
 

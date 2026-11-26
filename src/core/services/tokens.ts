@@ -1,4 +1,5 @@
 import { getTronWeb } from "./clients.js";
+import { parseTRC20Decimals } from "./utils.js";
 
 /**
  * Get TRC20 token information
@@ -25,7 +26,7 @@ export async function getTRC20TokenInfo(
       contract.methods.totalSupply().call(),
     ]);
 
-    const decimalsNum = Number(decimals);
+    const decimalsNum = parseTRC20Decimals(decimals);
     const totalSupplyBigInt = BigInt(totalSupply.toString());
     const divisor = BigInt(10) ** BigInt(decimalsNum);
 

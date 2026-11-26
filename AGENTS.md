@@ -22,6 +22,7 @@ This document provides essential information for AI agents working on this repos
 
 - **Start (Stdio)**: `npm start` (uses `tsx` to run `src/index.ts`)
 - **Start (HTTP)**: `npm run start:http`
+- **HTTP write mode**: `npm run start:http -- --allow-write` requires `MCP_HTTP_WRITE_TOKEN` and an authenticated MCP request. HTTP defaults to read-only.
 - **Read-only mode**: Add `--readonly` or `-r` to disable write tools (e.g., `npm start -- --readonly`)
 - **Inspect**: `npm run inspect` (launches MCP Inspector)
 

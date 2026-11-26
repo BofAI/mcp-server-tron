@@ -9,8 +9,10 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const expectedEngine = ">=22.23.4 <23 || >=24.22.1 <25";
-const expectedImage =
-  "node:24.22.1-bookworm-slim@sha256:1681862882da07ee5476fee047bcf34138833f1df42633bb25bcb0f438d5bf3d";
+const expectedImages = [
+  "node:24.22.3-trixie-slim@sha256:4d00acb4bcc42c454c4eb801526f7ad7f772ea3bd4fd168c5cc2e384abcbb9d4",
+  "gcr.io/distroless/nodejs24-debian13:nonroot@sha256:675c532423b908f9e56f9d60a4e62309b63cd2a3175acb90a46b96f7ee68e121",
+];
 const minimumVersions = new Map([
   [22, [22, 23, 4]],
   [24, [24, 22, 1]],
@@ -41,17 +43,17 @@ if (lockfile.packages?.[""]?.engines?.node !== expectedEngine) {
 const dockerfile = read("Dockerfile");
 const nodeImages = dockerfile
   .split(/\r?\n/u)
-  .map((line) => line.match(/^FROM\s+(node:\S+)/iu)?.[1])
+  .map((line) => line.match(/^FROM\s+(\S+)/iu)?.[1])
   .filter(Boolean);
 
-if (nodeImages.length !== 2) {
+if (nodeImages.length !== expectedImages.length) {
   errors.push(
     `Dockerfile must contain exactly two Node.js base stages; found ${nodeImages.length}`,
   );
 }
-for (const image of nodeImages) {
-  if (image !== expectedImage) {
-    errors.push(`Dockerfile Node.js base must be pinned to ${expectedImage}; found ${image}`);
+for (const [index, image] of expectedImages.entries()) {
+  if (nodeImages[index] !== image) {
+    errors.push(`Dockerfile stage ${index + 1} must be pinned to ${image}`);
   }
 }
 
