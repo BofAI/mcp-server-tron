@@ -30,10 +30,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check required tools
         run: |
-          which zip
+          which git
           which jq
           which python3
 
@@ -41,20 +42,23 @@ jobs:
         id: archive
         shell: bash
         run: |
-          ARCHIVE_NAME="${{ github.event.repository.name }}.zip"
-          rm -f "/tmp/${ARCHIVE_NAME}"
-          zip -r "/tmp/${ARCHIVE_NAME}" .
+          ARCHIVE_NAME="${GITHUB_REPOSITORY##*/}.zip"
+          git archive --format=zip --output="${RUNNER_TEMP}/${ARCHIVE_NAME}" HEAD
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Submit audit job
         id: submit
         shell: bash
+        env:
+          ARCHIVE_NAME: ${{ steps.archive.outputs.archive_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           RESPONSE=$(curl -s -X POST "${{ vars.AUDIT_SERVICE_URL }}/audit-pr/${{ vars.AUDIT_PR_SKILL }}" \
             -H "X-API-Key: ${{ secrets.AUDIT_API_KEY }}" \
-            -F "file=@/tmp/${{ steps.archive.outputs.archive_name }}" \
-            -F "from_branch=${{ github.event.pull_request.base.ref }}" \
-            -F "to_branch=${{ github.event.pull_request.head.ref }}")
+            -F "file=@${RUNNER_TEMP}/${ARCHIVE_NAME}" \
+            --form-string "from_branch=$PR_BASE_REF" \
+            --form-string "to_branch=$PR_HEAD_REF")
 
           echo "Submit response:"
           echo "$RESPONSE" | jq .
@@ -71,8 +75,9 @@ jobs:
       - name: Poll report until ready
         id: poll
         shell: bash
+        env:
+          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
         run: |
-          REPORT_PATH="${{ steps.submit.outputs.report_url }}"
           if [ -z "$REPORT_PATH" ]; then
             echo "Missing report_url"
             exit 1
@@ -97,8 +102,9 @@ jobs:
 
       - name: Fetch markdown report
         shell: bash
+        env:
+          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
         run: |
-          REPORT_PATH="${{ steps.submit.outputs.report_url }}"
           MD_PATH="${REPORT_PATH%audit-report.html}audit-report.md"
 
           echo "Markdown path: ${MD_PATH}"
@@ -184,10 +190,11 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.head_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check required tools
         run: |
-          which zip
+          which git
           which jq
           which python3
 
@@ -195,20 +202,23 @@ jobs:
         id: archive
         shell: bash
         run: |
-          ARCHIVE_NAME="${{ github.event.repository.name }}.zip"
-          rm -f "/tmp/${ARCHIVE_NAME}"
-          zip -r "/tmp/${ARCHIVE_NAME}" .
+          ARCHIVE_NAME="${GITHUB_REPOSITORY##*/}.zip"
+          git archive --format=zip --output="${RUNNER_TEMP}/${ARCHIVE_NAME}" HEAD
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Submit audit job
         id: submit
         shell: bash
+        env:
+          ARCHIVE_NAME: ${{ steps.archive.outputs.archive_name }}
+          PR_BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          PR_HEAD_REF: ${{ steps.pr.outputs.head_ref }}
         run: |
           RESPONSE=$(curl -s -X POST "${{ vars.AUDIT_SERVICE_URL }}/audit-pr/${{ vars.AUDIT_PR_SKILL }}" \
             -H "X-API-Key: ${{ secrets.AUDIT_API_KEY }}" \
-            -F "file=@/tmp/${{ steps.archive.outputs.archive_name }}" \
-            -F "from_branch=${{ steps.pr.outputs.base_ref }}" \
-            -F "to_branch=${{ steps.pr.outputs.head_ref }}")
+            -F "file=@${RUNNER_TEMP}/${ARCHIVE_NAME}" \
+            --form-string "from_branch=$PR_BASE_REF" \
+            --form-string "to_branch=$PR_HEAD_REF")
 
           echo "Submit response:"
           echo "$RESPONSE" | jq .
@@ -225,8 +235,9 @@ jobs:
       - name: Poll report until ready
         id: poll
         shell: bash
+        env:
+          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
         run: |
-          REPORT_PATH="${{ steps.submit.outputs.report_url }}"
           if [ -z "$REPORT_PATH" ]; then
             echo "Missing report_url"
             exit 1
@@ -251,8 +262,9 @@ jobs:
 
       - name: Fetch markdown report
         shell: bash
+        env:
+          REPORT_PATH: ${{ steps.submit.outputs.report_url }}
         run: |
-          REPORT_PATH="${{ steps.submit.outputs.report_url }}"
           MD_PATH="${REPORT_PATH%audit-report.html}audit-report.md"
 
           echo "Markdown path: ${MD_PATH}"

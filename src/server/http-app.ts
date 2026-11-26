@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import express, { Request, Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import startServer, { MCP_PROTOCOL_VERSION, version } from "./server.js";
@@ -8,12 +9,29 @@ export type HttpAppContext = {
   getActiveSessionCount: () => number;
 };
 
-export function createHttpApp(options: { readOnly?: boolean } = {}): HttpAppContext {
+export function createHttpApp(
+  options: { readOnly?: boolean; writeToken?: string } = {},
+): HttpAppContext {
+  const readOnly = options.readOnly !== false;
+  const writeToken = options.writeToken;
+  if (!readOnly && (!writeToken || /[^A-Za-z0-9._~+/=-]/.test(writeToken))) {
+    throw new Error("HTTP write mode requires a valid MCP_HTTP_WRITE_TOKEN");
+  }
+  const expectedToken = !readOnly && writeToken ? Buffer.from(writeToken) : undefined;
   const app = express();
   // Parse only bounded, uncompressed JSON before passing it to the MCP SDK.
   app.use(express.json({ limit: "1mb", inflate: false }));
 
   app.post("/mcp", async (req: Request, res: Response) => {
+    if (expectedToken) {
+      const bearer = req.get("Authorization")?.match(/^Bearer +([^\s]+)$/i)?.[1];
+      const token = Buffer.from(bearer ?? "");
+      if (token.length !== expectedToken.length || !timingSafeEqual(token, expectedToken)) {
+        res.setHeader("WWW-Authenticate", 'Bearer realm="mcp"');
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+    }
     console.log(`Received POST /mcp request from ${req.ip}`);
     let server: Awaited<ReturnType<typeof startServer>> | undefined;
     const transport = new StreamableHTTPServerTransport({
@@ -21,7 +39,7 @@ export function createHttpApp(options: { readOnly?: boolean } = {}): HttpAppCont
     });
 
     try {
-      server = await startServer({ readOnly: options.readOnly });
+      server = await startServer({ readOnly });
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } catch (error) {

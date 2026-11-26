@@ -164,9 +164,16 @@ npm start
 # Start in readonly mode (disables write tools)
 npm start -- --readonly
 
-# Start in stateless HTTP mode (Streamable HTTP)
+# Start in read-only stateless HTTP mode (Streamable HTTP)
 npm run start:http
 ```
+
+To enable HTTP write tools, supply a high-entropy `MCP_HTTP_WRITE_TOKEN` through
+the process environment and start with `npm run start:http -- --allow-write`.
+Clients must send `Authorization: Bearer <token>` with each MCP request in write
+mode. Serve the write endpoint over HTTPS and give the token only to callers
+authorized to use the configured wallet. The default stdio mode uses the local
+MCP client connection.
 
 HTTP requests accept uncompressed JSON up to 1 MiB. Tool arguments are limited to
 10,000 array elements and object keys in total, checked before schema validation.
